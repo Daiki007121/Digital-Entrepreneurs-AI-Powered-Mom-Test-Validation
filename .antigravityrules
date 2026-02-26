@@ -1,0 +1,216 @@
+# .antigravityrules — Digital Entrepreneurs MVP
+# Context Engineering rules for AI-assisted development (HW3 / P2)
+# Last updated: 2026-02-26
+
+# ============================================================
+# 1. PROJECT CONTEXT
+# ============================================================
+
+## What we're building
+"Digital Entrepreneurs" automates the startup validation process.
+- Phase 1 (MVP): Real-time Voice AI that strictly enforces the "Mom Test" interview framework
+- Phase 2 (MVP): AI transcript analysis to validate core pain points and produce insight reports
+- Phase 3 (Future): Auto-generate and deploy a SaaS solution based on validated pain points
+
+## Tech Stack
+- Frontend: Next.js 14 (App Router), React 18, Tailwind CSS
+- Backend: Node.js (Express), WebSocket (ws library)
+- Database: MongoDB (Mongoose ODM)
+- AI: OpenAI Realtime API (gpt-4o-realtime-preview) for voice, GPT-4o for analysis
+- Base: Forked from openai/openai-realtime-console (skip WebSocket plumbing)
+- Auth: NextAuth.js (JWT sessions)
+- Deployment: Vercel (frontend) + Railway (backend)
+
+## Folder Structure
+```
+/
+├── app/                   # Next.js App Router pages
+│   ├── (auth)/            # Login / signup routes
+│   ├── dashboard/         # Post-interview summary
+│   ├── interview/         # Live voice session UI
+│   └── api/               # Next.js API routes (thin wrappers)
+├── components/            # Reusable React components
+│   ├── ui/                # Generic UI (Button, Card, Modal…)
+│   └── interview/         # Interview-specific components
+├── lib/                   # Shared utilities
+│   ├── openai.ts          # OpenAI client helpers
+│   ├── mongodb.ts         # DB connection singleton
+│   └── momTest.ts         # Mom Test prompt logic
+├── server/                # Standalone Node.js/WebSocket server
+│   ├── index.ts           # Entry point
+│   ├── relay.ts           # OpenAI Realtime API relay
+│   └── analysis.ts        # Transcript analysis pipeline
+├── models/                # Mongoose schemas
+│   ├── Interview.ts
+│   ├── Insight.ts
+│   └── User.ts
+├── prompts/               # System prompts as .txt or .md files
+│   ├── momTestEnforcer.md
+│   └── insightAnalyzer.md
+└── tests/                 # Jest + React Testing Library
+```
+
+## Architecture Overview
+- Next.js frontend communicates with the Node.js relay server over WebSocket
+- Relay server forwards audio streams to/from OpenAI Realtime API
+- After each session, transcripts are saved to MongoDB
+- Analysis pipeline (GPT-4o) runs on saved transcripts and writes Insight documents
+- All AI instructions live in /prompts/ — never hardcoded inline
+
+## Naming Conventions
+- Files/folders: kebab-case
+- React components: PascalCase
+- Variables/functions: camelCase
+- Mongoose models: PascalCase (singular noun)
+- API routes: /api/[resource]/[action] (REST-ish)
+- Env vars: SCREAMING_SNAKE_CASE, prefixed with NEXT_PUBLIC_ for client-side
+
+## Coding Standards
+- TypeScript strict mode everywhere (tsconfig "strict": true)
+- ESLint + Prettier (run on save)
+- No `any` types — use `unknown` + type guards
+- Async/await over raw Promises; always handle errors with try/catch
+- No magic strings — use constants or enums
+- Components under 150 lines; extract hooks for logic > 30 lines
+
+## Testing Strategy
+- Framework: Jest + React Testing Library
+- Unit tests for: prompt logic (momTest.ts), analysis pipeline, Mongoose model validators
+- Integration tests for: API routes (supertest)
+- E2E: Playwright for critical paths (start interview → view insight)
+- Coverage goal: 70% on /lib and /server; UI components need smoke tests only
+
+# ============================================================
+# 2. PRD & DESIGN REFERENCES
+# ============================================================
+
+## PRD Summary
+Full PRD: /docs/PRD.md (in repo root)
+
+### User Stories (Sprint 1)
+- As a founder, I can start a voice interview session so that I can gather unbiased user feedback
+- As a founder, I can see a real-time transcript during the interview so that I know the AI is on track
+- As a founder, I can end a session and have the transcript automatically saved
+- As a founder, I can view a list of past interview sessions on my dashboard
+
+### User Stories (Sprint 2)
+- As a founder, I can trigger AI analysis on a saved transcript so that I receive validated pain points
+- As a founder, I can view an insight report with key themes and a validation score
+- As a founder, I can export the insight report as PDF
+
+## Mockup / Design Guidance
+Mockups live in /docs/mockups/ (Figma export PNGs)
+
+Key screens:
+1. **Interview Setup Screen** — Single CTA "Start Interview", shows participant name field and topic selector
+2. **Live Interview Screen** — Split: left = real-time transcript scroll, right = AI status indicator (listening / speaking / thinking). Red "End Session" button bottom-right.
+3. **Dashboard** — Card grid of past sessions (date, participant, status: analyzed / pending). "New Interview" FAB.
+4. **Insight Report Screen** — Top: validation score badge. Middle: pain point list with evidence quotes. Bottom: recommended next steps.
+
+### UI Component Behavior
+- `<TranscriptFeed />` — auto-scrolls to bottom; new AI utterances highlighted in blue, user in gray
+- `<ValidationScore />` — animated radial progress bar (0–100); color: red < 40, yellow 40–70, green > 70
+- `<PainPointCard />` — expandable; shows evidence quotes on expand
+- All modals use a shared `<Modal />` component with focus trap
+
+### Mom Test Enforcement Rules (critical for AI implementation)
+The voice AI must:
+- NEVER ask "Would you use this?" or "Do you like this idea?"
+- ALWAYS pivot to "Tell me about the last time you experienced X"
+- Flag and log any leading questions it accidentally produces
+- Keep interview to 10–15 minutes max (warn at 12 min)
+Reference: /prompts/momTestEnforcer.md for the full system prompt
+
+# ============================================================
+# 3. SCRUM & WORKFLOW INSTRUCTIONS
+# ============================================================
+
+## Branch Naming
+feature/<issue-number>-short-description
+bugfix/<issue-number>-short-description
+chore/<issue-number>-short-description
+hotfix/<issue-number>-short-description
+
+Examples:
+  feature/3-voice-session-ui
+  bugfix/12-websocket-reconnect
+  chore/1-repo-setup
+
+## Commit Message Format (Conventional Commits)
+<type>(<scope>): <short description>
+
+[optional body]
+
+Closes #<issue-number>
+
+Types: feat | fix | chore | docs | test | refactor | style
+Scope: ui | server | db | prompts | auth | ci
+
+Examples:
+  feat(server): add OpenAI Realtime API relay
+  fix(ui): transcript feed not auto-scrolling on mobile
+  chore(ci): add ESLint GitHub Action
+  Closes #5
+
+## PR Workflow
+1. Create branch from `main` using naming convention above
+2. Open PR with title matching commit format
+3. PR body must include:
+   - "Closes #<issue-number>"
+   - Screenshots/screen recording for UI changes
+   - Test results summary
+4. At least 1 peer review before merge
+5. Squash merge to keep main history clean
+6. Delete branch after merge
+
+## Referencing Issues in Code
+Add a comment near the relevant code block:
+// Implements #<issue-number>: <issue title>
+
+Example:
+// Implements #7: Enforce Mom Test rules in voice AI system prompt
+
+# ============================================================
+# 4. DO'S AND DON'TS
+# ============================================================
+
+## ✅ DO
+- Use the OpenAI Realtime API relay pattern from openai-realtime-console as the base
+- Store all system prompts in /prompts/ — never inline them in code
+- Use Mongoose transactions for writes that touch multiple collections
+- Validate all user inputs server-side (Zod schemas)
+- Use React Server Components for data-fetching pages; Client Components only when interactivity needed
+- Log all AI tool calls and model responses to MongoDB for debugging
+- Use environment variables for ALL secrets — never hardcode API keys
+- Write JSDoc comments for all exported functions in /lib and /server
+- Handle WebSocket disconnects gracefully (auto-reconnect with exponential backoff)
+
+## ❌ DON'T
+- Don't use `any` type in TypeScript
+- Don't call OpenAI API directly from Next.js API routes — always go through the relay server
+- Don't store audio files in MongoDB — use URLs/references only
+- Don't mix business logic into React components — keep components presentational
+- Don't skip error boundaries on the interview screen (WebSocket errors must not crash the UI)
+- Don't use `alert()` — use the toast notification system
+- Don't commit `.env.local` or any file containing real API keys
+- Don't use `console.log` in production — use the shared logger utility
+
+## Preferred Libraries
+- HTTP client: native `fetch` (not axios)
+- Forms: React Hook Form + Zod
+- State: Zustand for global state; useState/useReducer for local
+- Dates: date-fns (not moment)
+- Notifications: react-hot-toast
+- Icons: lucide-react
+
+## Security Requirements
+- Sanitize all transcript text before storing (prevent XSS via DOMPurify)
+- Rate-limit `/api/interview/start` to 10 req/min per user
+- Never expose OpenAI API key to client — relay server only
+- Validate session ownership before serving transcript data
+
+## Accessibility Requirements
+- All interactive elements must have aria-labels
+- Interview screen must work with keyboard navigation
+- Color is never the sole indicator of state (e.g., add icons alongside ValidationScore colors)
+- Minimum contrast ratio: 4.5:1 (WCAG AA)

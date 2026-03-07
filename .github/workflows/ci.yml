@@ -41,6 +41,9 @@ jobs:
         run: pnpm test
 
       - name: Build frontend
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: https://placeholder.supabase.co
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: placeholder-anon-key
         run: pnpm build
 
       - name: Build server

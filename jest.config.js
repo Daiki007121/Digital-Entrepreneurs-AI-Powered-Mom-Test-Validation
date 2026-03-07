@@ -5,12 +5,20 @@ const config = {
     '^.+\\.tsx?$': [
       'ts-jest',
       {
-        tsconfig: 'tsconfig.json',
+        tsconfig: {
+          jsx: 'react-jsx',
+          module: 'esnext',
+          moduleResolution: 'bundler',
+          esModuleInterop: true,
+          paths: { '@/*': ['./*'] },
+        },
       },
     ],
   },
   moduleNameMapper: {
     '^@/(.*)$': '<rootDir>/$1',
+    '^@google/genai$': '<rootDir>/node_modules/@google/genai',
+    '^@supabase/supabase-js$': '<rootDir>/node_modules/@supabase/supabase-js',
   },
   testMatch: ['<rootDir>/tests/**/*.test.ts', '<rootDir>/tests/**/*.test.tsx'],
   setupFilesAfterEnv: ['@testing-library/jest-dom'],

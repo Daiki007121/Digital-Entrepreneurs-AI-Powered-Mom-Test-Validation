@@ -11,6 +11,7 @@ export interface Interview {
   userId: string;
   participantName: string;
   topic: string;
+  targetUser: string;
   status: InterviewStatus;
   transcript: TranscriptEntry[];
   durationSeconds: number | null;

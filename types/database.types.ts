@@ -94,6 +94,7 @@ export type Database = {
           id: string
           participant_name: string
           status: string
+          target_user: string
           topic: string
           transcript: Json | null
           updated_at: string
@@ -105,6 +106,7 @@ export type Database = {
           id?: string
           participant_name: string
           status?: string
+          target_user?: string
           topic: string
           transcript?: Json | null
           updated_at?: string
@@ -116,6 +118,7 @@ export type Database = {
           id?: string
           participant_name?: string
           status?: string
+          target_user?: string
           topic?: string
           transcript?: Json | null
           updated_at?: string
@@ -255,3 +258,9 @@ export type CompositeTypes<
   : PublicCompositeTypeNameOrOptions extends keyof DefaultSchema["CompositeTypes"]
     ? DefaultSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
     : never
+
+export const Constants = {
+  public: {
+    Enums: {},
+  },
+} as const

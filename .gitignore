@@ -38,3 +38,9 @@ supabase/.temp/
 
 # typescript
 *.tsbuildinfo
+
+# spike / throwaway prototypes
+spike/
+
+# playwright MCP
+.playwright-mcp/

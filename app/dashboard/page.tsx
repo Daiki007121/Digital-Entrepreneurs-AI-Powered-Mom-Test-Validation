@@ -1,44 +1,41 @@
-'use client';
-
-import { useAuth } from '@/lib/hooks/use-auth';
+// Implements #8: Dashboard page (server component)
+import { redirect } from 'next/navigation';
+import { getAuthUser } from '@/lib/auth';
+import { createServerSupabaseClient } from '@/lib/supabase-server';
 import { ThemeToggle } from '@/components/ui/theme-toggle';
-import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
-import { useRouter } from 'next/navigation';
+import { UserMenu } from '@/components/ui/user-menu';
+import { DashboardView } from '@/components/interview/dashboard-view';
 
-export default function DashboardPage() {
-  const { user, signOut } = useAuth();
-  const router = useRouter();
+export default async function DashboardPage() {
+  let user;
+  try {
+    user = await getAuthUser();
+  } catch {
+    redirect('/login');
+  }
 
-  const handleSignOut = async () => {
-    await signOut();
-    router.push('/login');
-  };
+  const supabase = createServerSupabaseClient();
+
+  const { data: interviews, error } = await supabase
+    .from('interviews')
+    .select('id, participant_name, topic, target_user, status, duration_seconds, created_at, updated_at')
+    .eq('user_id', user.id)
+    .order('created_at', { ascending: false });
 
   return (
-    <div className="min-h-screen p-8">
-      <div className="mx-auto max-w-4xl space-y-6">
-        <div className="flex items-center justify-between">
-          <h1 className="font-heading text-2xl font-bold">Dashboard</h1>
+    <div className="min-h-screen p-6 sm:p-8">
+      <div className="mx-auto max-w-6xl space-y-6">
+        <header className="flex items-center justify-between">
+          <h1 className="font-heading text-2xl font-bold text-[var(--text-primary)]">
+            Dashboard
+          </h1>
           <div className="flex items-center gap-3">
             <ThemeToggle />
-            <Button variant="ghost" size="sm" onClick={handleSignOut}>
-              Sign Out
-            </Button>
+            <UserMenu />
           </div>
-        </div>
+        </header>
 
-        <Card>
-          <p className="text-sm text-text-muted">
-            Signed in as <strong>{user?.email ?? 'loading...'}</strong>
-          </p>
-        </Card>
-
-        <Card>
-          <p className="text-text-muted">
-            No interviews yet. The interview flow will be built in Plan 3.
-          </p>
-        </Card>
+        <DashboardView interviews={error ? [] : interviews ?? []} />
       </div>
     </div>
   );

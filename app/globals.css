@@ -1,0 +1,119 @@
+@import url('https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600;700&family=Fira+Sans:wght@300;400;500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --bg-base: #F5F3FF;
+    --bg-surface: rgba(255, 255, 255, 0.72);
+    --bg-elevated: rgba(255, 255, 255, 0.85);
+    --border-glass: rgba(255, 255, 255, 0.3);
+    --border-subtle: rgba(99, 102, 241, 0.12);
+    --text-primary: #1E1B4B;
+    --text-secondary: #475569;
+    --text-muted: #64748B;
+    --aurora-1: rgba(99, 102, 241, 0.12);
+    --aurora-2: rgba(16, 185, 129, 0.08);
+    --aurora-3: rgba(129, 140, 248, 0.1);
+  }
+
+  .dark {
+    --bg-base: #0B0A1A;
+    --bg-surface: rgba(30, 27, 75, 0.65);
+    --bg-elevated: rgba(30, 27, 75, 0.85);
+    --border-glass: rgba(99, 102, 241, 0.2);
+    --border-subtle: rgba(99, 102, 241, 0.15);
+    --text-primary: #F1F0FB;
+    --text-secondary: #C4B5FD;
+    --text-muted: #94A3B8;
+    --aurora-1: rgba(99, 102, 241, 0.18);
+    --aurora-2: rgba(16, 185, 129, 0.12);
+    --aurora-3: rgba(129, 140, 248, 0.15);
+  }
+
+  html {
+    font-family: "Fira Sans", sans-serif;
+    color: var(--text-primary);
+  }
+
+  body {
+    background: var(--bg-base);
+    color: var(--text-primary);
+    min-height: 100vh;
+    transition: background-color 500ms ease, color 500ms ease;
+  }
+}
+
+@layer components {
+  /* Aurora background — use on page wrappers */
+  .aurora-bg {
+    position: relative;
+    overflow: hidden;
+  }
+
+  .aurora-bg::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    background:
+      radial-gradient(ellipse 80% 60% at 20% 20%, var(--aurora-1) 0%, transparent 60%),
+      radial-gradient(ellipse 60% 80% at 80% 80%, var(--aurora-2) 0%, transparent 60%),
+      radial-gradient(ellipse 70% 50% at 50% 50%, var(--aurora-3) 0%, transparent 70%);
+    background-size: 200% 200%;
+    animation: auroraShift 8s ease-in-out infinite;
+    pointer-events: none;
+  }
+
+  @keyframes auroraShift {
+    0%, 100% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+  }
+
+  /* Glass surface */
+  .glass {
+    background: var(--bg-surface);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid var(--border-glass);
+    border-radius: 16px;
+  }
+
+  .glass-elevated {
+    background: var(--bg-elevated);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid var(--border-glass);
+    border-radius: 16px;
+  }
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+}
+
+/* Smooth theme transition on all elements */
+html.theme-transitioning,
+html.theme-transitioning *,
+html.theme-transitioning *::before,
+html.theme-transitioning *::after {
+  transition: background-color 500ms ease, color 500ms ease, border-color 500ms ease, box-shadow 500ms ease !important;
+}
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  .aurora-bg::before {
+    animation: none;
+  }
+
+  html.theme-transitioning,
+  html.theme-transitioning *,
+  html.theme-transitioning *::before,
+  html.theme-transitioning *::after {
+    transition-duration: 0ms !important;
+  }
+}

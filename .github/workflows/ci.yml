@@ -38,7 +38,7 @@ jobs:
         run: cd server && pnpm typecheck
 
       - name: Test
-        run: pnpm test --passWithNoTests
+        run: pnpm test
 
       - name: Build frontend
         run: pnpm build

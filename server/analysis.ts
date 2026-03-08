@@ -2,7 +2,7 @@
 import { GoogleGenAI } from '@google/genai';
 import { createClient } from '@supabase/supabase-js';
 
-const GEMINI_PRO_MODEL = 'gemini-2.5-pro-preview-06-05';
+const GEMINI_PRO_MODEL = 'gemini-2.5-flash';
 const MAX_RETRIES = 3;
 const RETRYABLE_STATUS_CODES = [429, 500, 503];
 

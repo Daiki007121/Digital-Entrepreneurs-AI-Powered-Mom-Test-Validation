@@ -73,6 +73,18 @@ export class GeminiRelay {
         },
       },
     });
+
+    // Trigger AI to speak first — must be after ai.live.connect() resolves
+    // so this.session is assigned
+    this.session.sendClientContent({
+      turns: [
+        {
+          role: 'user',
+          parts: [{ text: 'Please begin the interview. Introduce yourself and start with your opening question.' }],
+        },
+      ],
+      turnComplete: true,
+    });
   }
 
   /**
@@ -126,12 +138,14 @@ export class GeminiRelay {
         this.aiTranscriptBuffer += outputTranscription.text as string;
       }
 
-      // Handle input audio transcription (user speech text from Gemini) — accumulate into buffer
+      // Handle input audio transcription (user speech text from Gemini)
+      // Unlike outputTranscription, inputTranscription sends the full accumulated text
+      // each time (not incremental deltas), so we replace rather than append
       const inputTranscription = serverContent.inputTranscription as
         | Record<string, unknown>
         | undefined;
       if (inputTranscription?.text) {
-        this.userTranscriptBuffer += inputTranscription.text as string;
+        this.userTranscriptBuffer = inputTranscription.text as string;
       }
 
       // Handle turn complete — flush buffered AI transcript as one message
@@ -163,6 +177,7 @@ export class GeminiRelay {
 
     if (this.userTranscriptBuffer.trim()) {
       const text = this.userTranscriptBuffer.trim();
+      this.sendToClient({ type: 'user_transcript', text });
       this.callbacks.onTranscript({
         speaker: 'user',
         text,

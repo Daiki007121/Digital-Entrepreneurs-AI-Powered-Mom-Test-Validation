@@ -37,9 +37,9 @@ describe('InterviewCard', () => {
     expect(screen.getByText('Active')).toBeInTheDocument();
   });
 
-  it('renders Completed badge for completed status', () => {
+  it('renders Analyzing badge for completed status', () => {
     render(<InterviewCard {...defaultProps} status="completed" />);
-    expect(screen.getByText('Completed')).toBeInTheDocument();
+    expect(screen.getByText('Analyzing...')).toBeInTheDocument();
   });
 
   it('renders Analyzed badge for analyzed status', () => {

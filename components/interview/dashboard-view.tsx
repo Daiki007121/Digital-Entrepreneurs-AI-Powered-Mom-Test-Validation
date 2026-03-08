@@ -1,6 +1,7 @@
 // Implements #8: Dashboard view — interview grid, empty state, New Interview FAB
 'use client';
 
+import { useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { Plus, MessageSquare } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -22,8 +23,32 @@ interface DashboardViewProps {
   interviews: InterviewRow[];
 }
 
+const POLL_INTERVAL_MS = 5000;
+
 export function DashboardView({ interviews }: DashboardViewProps) {
   const router = useRouter();
+  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  // Poll when any interview is analyzing, or was recently active (covers the
+  // timing gap where the server hasn't yet transitioned active → completed)
+  const hasAnalyzing = interviews.some(
+    (i) => i.status === 'completed' ||
+      (i.status === 'active' && Date.now() - new Date(i.updated_at).getTime() < 60_000)
+  );
+
+  useEffect(() => {
+    if (hasAnalyzing) {
+      pollRef.current = setInterval(() => {
+        router.refresh();
+      }, POLL_INTERVAL_MS);
+    }
+    return () => {
+      if (pollRef.current) {
+        clearInterval(pollRef.current);
+        pollRef.current = null;
+      }
+    };
+  }, [hasAnalyzing, router]);
 
   if (interviews.length === 0) {
     return (

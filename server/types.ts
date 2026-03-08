@@ -19,6 +19,7 @@ export interface ServerMessage {
   type:
     | 'audio'
     | 'transcript'
+    | 'user_transcript'
     | 'turn_complete'
     | 'interrupted'
     | 'session_started'
@@ -58,6 +59,8 @@ export interface ActiveSession {
   startedAt: number;
   lastActivityAt: number;
   silenceStartedAt: number | null;
+  /** True once AI has produced its first transcript — silence detection starts after this */
+  aiReady: boolean;
   warningsSent: Set<string>;
   checkpointTimer: ReturnType<typeof setInterval> | null;
   durationTimer: ReturnType<typeof setInterval> | null;

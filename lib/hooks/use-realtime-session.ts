@@ -2,7 +2,7 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { WS_RECONNECT_MAX_RETRIES } from '@/lib/constants';
+import { WS_RECONNECT_MAX_RETRIES, WS_CLOSE_DELAY_MS } from '@/lib/constants';
 import type { TranscriptEntry } from '@/types';
 
 type ConnectionStatus = 'idle' | 'connecting' | 'connected' | 'disconnected' | 'error';
@@ -26,6 +26,9 @@ interface SessionConfig {
 interface RealtimeSessionCallbacks {
   onAudio: (base64Audio: string) => void;
   onTranscript: (entry: TranscriptEntry) => void;
+  onUserTranscript: (entry: TranscriptEntry) => void;
+  onTurnComplete: () => void;
+  onSessionStarted: () => void;
   onWarning: (message: string) => void;
   onSilenceDetected: (seconds: number) => void;
   onSessionEnded: () => void;
@@ -53,12 +56,17 @@ export function useRealtimeSession(): RealtimeSessionReturn {
   const configRef = useRef<SessionConfig | null>(null);
   const retryCountRef = useRef(0);
   const retryTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const closeTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const intentionalCloseRef = useRef(false);
 
   const cleanup = useCallback(() => {
     if (retryTimeoutRef.current) {
       clearTimeout(retryTimeoutRef.current);
       retryTimeoutRef.current = null;
+    }
+    if (closeTimeoutRef.current) {
+      clearTimeout(closeTimeoutRef.current);
+      closeTimeoutRef.current = null;
     }
     if (wsRef.current) {
       wsRef.current.onopen = null;
@@ -114,13 +122,23 @@ export function useRealtimeSession(): RealtimeSessionReturn {
               });
             }
             break;
+          case 'user_transcript':
+            if (msg.text) {
+              cb.onUserTranscript({
+                speaker: 'user',
+                text: msg.text,
+                timestamp: Date.now(),
+              });
+            }
+            break;
           case 'turn_complete':
-            // AI finished speaking — no action needed
+            cb.onTurnComplete();
             break;
           case 'interrupted':
-            // AI was interrupted — no action needed
+            cb.onTurnComplete();
             break;
           case 'session_started':
+            cb.onSessionStarted();
             break;
           case 'session_ended':
             cb.onSessionEnded();
@@ -180,10 +198,24 @@ export function useRealtimeSession(): RealtimeSessionReturn {
     intentionalCloseRef.current = true;
     if (wsRef.current?.readyState === WebSocket.OPEN) {
       wsRef.current.send(JSON.stringify({ type: 'end_session' }));
+      // Let the server process end_session before closing the WebSocket
+      // The server needs time to save transcript and trigger analysis
+      const ws = wsRef.current;
+      closeTimeoutRef.current = setTimeout(() => {
+        if (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING) {
+          ws.close();
+        }
+        closeTimeoutRef.current = null;
+      }, WS_CLOSE_DELAY_MS);
+      wsRef.current = null;
     }
-    cleanup();
+    // Clear retry timer but don't force-close WS yet
+    if (retryTimeoutRef.current) {
+      clearTimeout(retryTimeoutRef.current);
+      retryTimeoutRef.current = null;
+    }
     setConnectionStatus('disconnected');
-  }, [cleanup]);
+  }, []);
 
   const sendAudio = useCallback((base64Audio: string) => {
     if (wsRef.current?.readyState === WebSocket.OPEN) {

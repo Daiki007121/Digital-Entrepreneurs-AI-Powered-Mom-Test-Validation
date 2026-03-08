@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
-import { CheckCircle, Clock, BarChart3, AlertTriangle, XCircle } from 'lucide-react';
+import { CheckCircle, Clock, BarChart3, AlertTriangle, XCircle, Loader2 } from 'lucide-react';
 
-type BadgeVariant = 'default' | 'active' | 'completed' | 'analyzed' | 'warning' | 'error';
+type BadgeVariant = 'default' | 'active' | 'completed' | 'analyzing' | 'analyzed' | 'warning' | 'error';
 
 interface BadgeProps {
   variant?: BadgeVariant;
@@ -17,6 +17,8 @@ const variantStyles: Record<BadgeVariant, string> = {
     'bg-blue-500/10 text-blue-600 dark:bg-blue-500/20 dark:text-blue-400',
   completed:
     'bg-amber-500/10 text-amber-600 dark:bg-amber-500/20 dark:text-amber-400',
+  analyzing:
+    'bg-violet-500/10 text-violet-600 dark:bg-violet-500/20 dark:text-violet-400 animate-pulse',
   analyzed:
     'bg-cta/10 text-cta-dark dark:bg-cta/20 dark:text-cta-light',
   warning:
@@ -28,6 +30,7 @@ const variantStyles: Record<BadgeVariant, string> = {
 const defaultIcons: Partial<Record<BadgeVariant, ReactNode>> = {
   active: <Clock className="h-3.5 w-3.5" />,
   completed: <CheckCircle className="h-3.5 w-3.5" />,
+  analyzing: <Loader2 className="h-3.5 w-3.5 animate-spin" />,
   analyzed: <BarChart3 className="h-3.5 w-3.5" />,
   warning: <AlertTriangle className="h-3.5 w-3.5" />,
   error: <XCircle className="h-3.5 w-3.5" />,

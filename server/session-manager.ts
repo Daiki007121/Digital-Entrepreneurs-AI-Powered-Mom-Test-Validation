@@ -51,6 +51,7 @@ export class SessionManager {
       startedAt: now,
       lastActivityAt: now,
       silenceStartedAt: null,
+      aiReady: false,
       warningsSent: new Set(),
       checkpointTimer: null,
       durationTimer: null,
@@ -61,6 +62,7 @@ export class SessionManager {
         session.transcript.push(entry);
         session.lastActivityAt = Date.now();
         session.silenceStartedAt = null; // Reset silence on transcript activity
+        if (!session.aiReady) session.aiReady = true;
       },
       onError: (error: string) => {
         console.error(`[SessionManager] Gemini error for ${config.interviewId}:`, error);
@@ -119,6 +121,10 @@ export class SessionManager {
     if (!entry) return;
 
     const { session } = entry;
+
+    // Don't track silence until AI has spoken at least once
+    if (!session.aiReady) return;
+
     const now = Date.now();
 
     if (rms < RMS_SILENCE_THRESHOLD) {
@@ -157,10 +163,14 @@ export class SessionManager {
 
   /**
    * Ends a session, saves final transcript, and cleans up.
+   * Removes session from map immediately to prevent double-call race conditions.
    */
   async endSession(ws: WebSocket): Promise<void> {
     const entry = this.sessions.get(ws);
     if (!entry) return;
+
+    // Remove from map immediately to prevent concurrent calls
+    this.sessions.delete(ws);
 
     const { session, relay } = entry;
 
@@ -174,7 +184,7 @@ export class SessionManager {
     // Calculate duration
     const durationSeconds = Math.round((Date.now() - session.startedAt) / 1000);
 
-    // Save final transcript
+    // Save final transcript + auto-trigger analysis
     await this.saveFinalTranscript(session, durationSeconds);
 
     this.sendToClient(ws, {
@@ -183,7 +193,6 @@ export class SessionManager {
       elapsedSeconds: durationSeconds,
     });
 
-    this.sessions.delete(ws);
     console.log(
       `[SessionManager] Session ended: ${session.interviewId} (${durationSeconds}s)`,
     );

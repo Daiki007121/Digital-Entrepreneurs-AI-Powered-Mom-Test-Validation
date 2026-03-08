@@ -17,6 +17,8 @@ const config = {
   },
   moduleNameMapper: {
     '^@/(.*)$': '<rootDir>/$1',
+    '^@google/genai$': '<rootDir>/node_modules/@google/genai',
+    '^@supabase/supabase-js$': '<rootDir>/node_modules/@supabase/supabase-js',
   },
   testMatch: ['<rootDir>/tests/**/*.test.ts', '<rootDir>/tests/**/*.test.tsx'],
   setupFilesAfterEnv: ['@testing-library/jest-dom'],

@@ -5,7 +5,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { format } from 'date-fns';
 import toast from 'react-hot-toast';
-import { Play, CheckCircle, BarChart3, Clock, Trash2 } from 'lucide-react';
+import { Play, CheckCircle, BarChart3, Clock, Trash2, Loader2 } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -21,9 +21,9 @@ interface InterviewCardProps {
   createdAt: string;
 }
 
-const statusConfig: Record<InterviewStatus, { label: string; variant: 'active' | 'completed' | 'analyzed'; icon: React.ReactNode }> = {
+const statusConfig: Record<InterviewStatus, { label: string; variant: 'active' | 'completed' | 'analyzing' | 'analyzed'; icon: React.ReactNode }> = {
   active: { label: 'Active', variant: 'active', icon: <Play className="h-3.5 w-3.5" /> },
-  completed: { label: 'Completed', variant: 'completed', icon: <CheckCircle className="h-3.5 w-3.5" /> },
+  completed: { label: 'Analyzing...', variant: 'analyzing', icon: <Loader2 className="h-3.5 w-3.5 animate-spin" /> },
   analyzed: { label: 'Analyzed', variant: 'analyzed', icon: <BarChart3 className="h-3.5 w-3.5" /> },
 };
 

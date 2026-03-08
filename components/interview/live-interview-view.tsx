@@ -6,7 +6,6 @@ import { useRouter } from 'next/navigation';
 import toast from 'react-hot-toast';
 import { useAudioSession } from '@/lib/hooks/use-audio-session';
 import { useRealtimeSession } from '@/lib/hooks/use-realtime-session';
-import { useSpeechRecognition } from '@/lib/hooks/use-speech-recognition';
 import { useInterviewStore } from '@/lib/stores/interview-store';
 import { TranscriptFeed } from './transcript-feed';
 import { AiStatusIndicator } from './ai-status-indicator';
@@ -15,6 +14,7 @@ import { SilenceIndicator } from './silence-indicator';
 import { SessionControls } from './session-controls';
 import { ErrorBoundary } from '@/components/ui/error-boundary';
 import { Spinner } from '@/components/ui/spinner';
+import { POST_SESSION_NAV_DELAY_MS } from '@/lib/constants';
 import type { TranscriptEntry } from '@/types';
 
 interface LiveInterviewViewProps {
@@ -34,7 +34,8 @@ export function LiveInterviewView({
 }: LiveInterviewViewProps) {
   const router = useRouter();
   const [isInitializing, setIsInitializing] = useState(true);
-  const [hasEnded, setHasEnded] = useState(false);
+  const [isEnding, setIsEnding] = useState(false);
+  const hasEndedRef = useRef(false);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const startTimeRef = useRef<number>(Date.now());
 
@@ -44,25 +45,11 @@ export function LiveInterviewView({
   const { connectionStatus, connect, disconnect, sendAudio, sendRms } =
     useRealtimeSession();
 
-  const handleUserFinalTranscript = useCallback(
-    (text: string) => {
-      store.addTranscriptEntry({
-        speaker: 'user',
-        text,
-        timestamp: Date.now(),
-      });
-    },
-    [store],
-  );
-
-  const { isSupported: speechSupported, interimTranscript, start: startSpeech, stop: stopSpeech } =
-    useSpeechRecognition(handleUserFinalTranscript);
-
   const handleEndSession = useCallback(() => {
-    if (hasEnded) return;
-    setHasEnded(true);
+    if (hasEndedRef.current) return;
+    hasEndedRef.current = true;
+    setIsEnding(true);
     stopPlayback();
-    stopSpeech();
     stopCapture();
     disconnect();
     if (timerRef.current) {
@@ -70,8 +57,11 @@ export function LiveInterviewView({
       timerRef.current = null;
     }
     toast.success('Interview ended. Analysis will begin shortly.');
-    router.push('/dashboard');
-  }, [hasEnded, stopPlayback, stopSpeech, stopCapture, disconnect, router]);
+    // TODO: Replace fixed delay — wait for the server's session_ended WS message before navigating
+    setTimeout(() => {
+      router.push('/dashboard');
+    }, POST_SESSION_NAV_DELAY_MS);
+  }, [stopPlayback, stopCapture, disconnect, router]);
 
   // Initialize session on mount
   useEffect(() => {
@@ -84,9 +74,10 @@ export function LiveInterviewView({
       store.setElapsedSeconds(elapsed);
     }, 1000);
 
-    // Start audio capture → WebSocket → speech recognition
-    const init = async () => {
-      await startCapture({
+    // Start audio capture + WebSocket in parallel for fast initialization.
+    // Keep spinner until server confirms Gemini is connected (session_started).
+    const init = () => {
+      startCapture({
         onAudioData: (base64) => sendAudio(base64),
         onRmsValue: (rms) => sendRms(rms),
       });
@@ -102,6 +93,16 @@ export function LiveInterviewView({
             store.addTranscriptEntry(entry);
             store.setAiState('listening');
           },
+          onUserTranscript: (entry: TranscriptEntry) => {
+            store.addTranscriptEntry(entry);
+          },
+          onTurnComplete: () => {
+            store.setAiState('listening');
+          },
+          onSessionStarted: () => {
+            store.setIsRecording(true);
+            setIsInitializing(false);
+          },
           onWarning: (message: string) => {
             toast(message, { icon: '⏰' });
           },
@@ -113,16 +114,11 @@ export function LiveInterviewView({
           },
           onError: (message: string) => {
             toast.error(message);
+            // Unblock spinner if session setup fails (e.g. Gemini connection error)
+            setIsInitializing(false);
           },
         },
       );
-
-      if (speechSupported) {
-        startSpeech();
-      }
-
-      store.setIsRecording(true);
-      setIsInitializing(false);
     };
 
     init();
@@ -131,6 +127,8 @@ export function LiveInterviewView({
       if (timerRef.current) {
         clearInterval(timerRef.current);
       }
+      // Release microphone on unmount
+      stopCapture();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -146,6 +144,17 @@ export function LiveInterviewView({
     );
   }
 
+  if (isEnding) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center gap-4">
+        <Spinner size="lg" />
+        <p className="text-[var(--text-secondary)] font-body text-sm">
+          Ending session...
+        </p>
+      </div>
+    );
+  }
+
   return (
     <ErrorBoundary>
       <div className="min-h-screen flex flex-col">
@@ -153,11 +162,6 @@ export function LiveInterviewView({
         <header className="flex items-center justify-between px-6 py-3 glass border-b border-[var(--border-subtle)]">
           <div className="flex items-center gap-4">
             <AiStatusIndicator state={store.aiState} />
-            {!speechSupported && (
-              <span className="text-xs text-amber-500 font-body">
-                User speech transcription unavailable
-              </span>
-            )}
           </div>
           <div className="flex items-center gap-3">
             <SilenceIndicator silenceSeconds={store.silenceSeconds} />
@@ -179,7 +183,6 @@ export function LiveInterviewView({
         <main className="flex-1 overflow-hidden">
           <TranscriptFeed
             transcript={store.transcript}
-            interimUserText={interimTranscript || undefined}
           />
         </main>
 

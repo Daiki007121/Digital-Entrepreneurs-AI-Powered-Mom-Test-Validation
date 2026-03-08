@@ -58,7 +58,7 @@ describe('callGeminiPro', () => {
 
     expect(mockGenerateContent).toHaveBeenCalledWith(
       expect.objectContaining({
-        model: 'gemini-2.5-pro-preview-06-05',
+        model: 'gemini-2.5-flash',
         config: expect.objectContaining({
           systemInstruction: 'system prompt',
           responseMimeType: 'application/json',

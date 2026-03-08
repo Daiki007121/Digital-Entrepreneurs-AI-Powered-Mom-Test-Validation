@@ -14,7 +14,7 @@ export const MAX_INTERVIEW_DURATION_SECONDS = 900;
 export const INTERVIEW_WARNING_SECONDS = 720;
 
 /** Silence timeout in seconds — auto-end after this duration */
-export const SILENCE_TIMEOUT_SECONDS = 20;
+export const SILENCE_TIMEOUT_SECONDS = 35;
 
 /** Transcript speaker identifiers */
 export const TRANSCRIPT_SPEAKER = {
@@ -33,3 +33,10 @@ export const RMS_SILENCE_THRESHOLD = 0.01;
 
 /** Transcript checkpoint interval in milliseconds (30 seconds) */
 export const TRANSCRIPT_CHECKPOINT_INTERVAL_MS = 30_000;
+
+/** Delay before closing WebSocket after sending end_session (ms) */
+export const WS_CLOSE_DELAY_MS = 500;
+
+/** Delay before navigating to dashboard after session ends (ms) */
+export const POST_SESSION_NAV_DELAY_MS = 2000;
+

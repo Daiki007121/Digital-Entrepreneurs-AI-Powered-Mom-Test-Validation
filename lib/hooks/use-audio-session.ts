@@ -81,6 +81,11 @@ export function useAudioSession(): AudioSessionReturn {
       const audioContext = new AudioContext({ sampleRate: 24000 });
       audioContextRef.current = audioContext;
 
+      // Browser autoplay policy may suspend AudioContext created outside user gestures
+      if (audioContext.state === 'suspended') {
+        await audioContext.resume();
+      }
+
       const source = audioContext.createMediaStreamSource(stream);
       sourceRef.current = source;
 
@@ -152,6 +157,10 @@ export function useAudioSession(): AudioSessionReturn {
   }, []);
 
   const playAudio = useCallback((base64Audio: string) => {
+    // Defensive resume — AudioContext can be re-suspended by tab backgrounding
+    if (audioContextRef.current?.state === 'suspended') {
+      audioContextRef.current.resume();
+    }
     streamerRef.current?.addPCM16Chunk(base64Audio);
   }, []);
 

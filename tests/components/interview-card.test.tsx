@@ -71,13 +71,20 @@ describe('InterviewCard', () => {
 
   it('navigates to interview page on click for active interviews', () => {
     render(<InterviewCard {...defaultProps} status="active" />);
-    screen.getByRole('button').click();
+    screen.getByRole('button', { name: /Interview with Jane Doe/ }).click();
     expect(mockPush).toHaveBeenCalledWith('/interview/test-id-1');
   });
 
   it('navigates to report page on click for analyzed interviews', () => {
     render(<InterviewCard {...defaultProps} status="analyzed" />);
-    screen.getByRole('button').click();
+    screen.getByRole('button', { name: /Interview with Jane Doe/ }).click();
     expect(mockPush).toHaveBeenCalledWith('/dashboard/test-id-1/report');
+  });
+
+  it('renders delete button', () => {
+    render(<InterviewCard {...defaultProps} />);
+    expect(
+      screen.getByRole('button', { name: /Delete interview with Jane Doe/ })
+    ).toBeInTheDocument();
   });
 });

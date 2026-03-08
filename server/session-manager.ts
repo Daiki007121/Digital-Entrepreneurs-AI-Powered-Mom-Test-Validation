@@ -253,7 +253,7 @@ export class SessionManager {
     }
   }
 
-  /** Saves final transcript and updates interview status */
+  /** Saves final transcript, updates interview status, then auto-triggers analysis */
   private async saveFinalTranscript(
     session: ActiveSession,
     durationSeconds: number,
@@ -268,6 +268,18 @@ export class SessionManager {
       );
     } catch (err) {
       console.error('[SessionManager] Final save failed:', err);
+      return; // Don't trigger analysis if save failed
+    }
+
+    // Auto-trigger analysis pipeline (fire-and-forget, don't block session end)
+    try {
+      const { analyzeTranscript } = await import('./analysis.js');
+      console.log(`[SessionManager] Starting analysis for: ${session.interviewId}`);
+      analyzeTranscript(session.interviewId)
+        .then(() => console.log(`[SessionManager] Analysis complete: ${session.interviewId}`))
+        .catch((err: unknown) => console.error('[SessionManager] Analysis failed:', err));
+    } catch (err) {
+      console.error('[SessionManager] Failed to start analysis:', err);
     }
   }
 

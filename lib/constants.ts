@@ -14,7 +14,7 @@ export const MAX_INTERVIEW_DURATION_SECONDS = 900;
 export const INTERVIEW_WARNING_SECONDS = 720;
 
 /** Silence timeout in seconds — auto-end after this duration */
-export const SILENCE_TIMEOUT_SECONDS = 10;
+export const SILENCE_TIMEOUT_SECONDS = 20;
 
 /** Transcript speaker identifiers */
 export const TRANSCRIPT_SPEAKER = {

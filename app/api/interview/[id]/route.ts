@@ -1,4 +1,4 @@
-// Implements #7: Interview API — GET (fetch) + PATCH (save transcript)
+// Implements #7: Interview API — GET (fetch) + PATCH (save transcript) + DELETE
 import { NextResponse } from 'next/server';
 import { getAuthUser } from '@/lib/auth';
 import { createServerSupabaseClient } from '@/lib/supabase-server';
@@ -32,6 +32,45 @@ export async function GET(_request: Request, { params }: RouteContext) {
     }
 
     return NextResponse.json(data);
+  } catch (err) {
+    if (err instanceof Error && err.message === 'Unauthorized') {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+  }
+}
+
+export async function DELETE(_request: Request, { params }: RouteContext) {
+  try {
+    const user = await getAuthUser();
+    const supabase = createServerSupabaseClient();
+
+    // Verify ownership
+    const { data: existing, error: fetchError } = await supabase
+      .from('interviews')
+      .select('id, user_id')
+      .eq('id', params.id)
+      .eq('user_id', user.id)
+      .single();
+
+    if (fetchError || !existing) {
+      return NextResponse.json({ error: 'Interview not found' }, { status: 404 });
+    }
+
+    // Delete related records first (foreign key constraints)
+    await supabase.from('insights').delete().eq('interview_id', params.id);
+    await supabase.from('ai_logs').delete().eq('interview_id', params.id);
+
+    const { error: deleteError } = await supabase
+      .from('interviews')
+      .delete()
+      .eq('id', params.id);
+
+    if (deleteError) {
+      return NextResponse.json({ error: 'Failed to delete interview' }, { status: 500 });
+    }
+
+    return NextResponse.json({ success: true });
   } catch (err) {
     if (err instanceof Error && err.message === 'Unauthorized') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });

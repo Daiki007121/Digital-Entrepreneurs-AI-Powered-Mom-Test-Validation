@@ -19,6 +19,10 @@ export class GeminiRelay {
   private ws: WebSocket;
   private callbacks: GeminiRelayCallbacks;
   private closed = false;
+  /** Buffer for accumulating AI output transcription fragments */
+  private aiTranscriptBuffer = '';
+  /** Buffer for accumulating user input transcription fragments */
+  private userTranscriptBuffer = '';
 
   constructor(ws: WebSocket, callbacks: GeminiRelayCallbacks) {
     this.ws = ws;
@@ -114,42 +118,57 @@ export class GeminiRelay {
         }
       }
 
-      // Handle turn complete
-      if (serverContent.turnComplete) {
-        this.sendToClient({ type: 'turn_complete' });
-      }
-
-      // Handle interruption
-      if (serverContent.interrupted) {
-        this.sendToClient({ type: 'interrupted' });
-      }
-
-      // Handle output audio transcription (AI speech text)
+      // Handle output audio transcription (AI speech text) — accumulate into buffer
       const outputTranscription = serverContent.outputTranscription as
         | Record<string, unknown>
         | undefined;
       if (outputTranscription?.text) {
-        const text = outputTranscription.text as string;
-        this.sendToClient({ type: 'transcript', text });
-        this.callbacks.onTranscript({
-          speaker: 'ai-transcription',
-          text,
-          timestamp: Date.now(),
-        });
+        this.aiTranscriptBuffer += outputTranscription.text as string;
       }
 
-      // Handle input audio transcription (user speech text from Gemini)
+      // Handle input audio transcription (user speech text from Gemini) — accumulate into buffer
       const inputTranscription = serverContent.inputTranscription as
         | Record<string, unknown>
         | undefined;
       if (inputTranscription?.text) {
-        const text = inputTranscription.text as string;
-        this.callbacks.onTranscript({
-          speaker: 'user',
-          text,
-          timestamp: Date.now(),
-        });
+        this.userTranscriptBuffer += inputTranscription.text as string;
       }
+
+      // Handle turn complete — flush buffered AI transcript as one message
+      if (serverContent.turnComplete) {
+        this.flushTranscriptBuffers();
+        this.sendToClient({ type: 'turn_complete' });
+      }
+
+      // Handle interruption — flush whatever we have so far
+      if (serverContent.interrupted) {
+        this.flushTranscriptBuffers();
+        this.sendToClient({ type: 'interrupted' });
+      }
+    }
+  }
+
+  /** Flushes accumulated transcript buffers as complete messages */
+  private flushTranscriptBuffers(): void {
+    if (this.aiTranscriptBuffer.trim()) {
+      const text = this.aiTranscriptBuffer.trim();
+      this.sendToClient({ type: 'transcript', text });
+      this.callbacks.onTranscript({
+        speaker: 'ai-transcription',
+        text,
+        timestamp: Date.now(),
+      });
+      this.aiTranscriptBuffer = '';
+    }
+
+    if (this.userTranscriptBuffer.trim()) {
+      const text = this.userTranscriptBuffer.trim();
+      this.callbacks.onTranscript({
+        speaker: 'user',
+        text,
+        timestamp: Date.now(),
+      });
+      this.userTranscriptBuffer = '';
     }
   }
 
@@ -163,6 +182,7 @@ export class GeminiRelay {
 
   /** Close the Gemini session */
   async close(): Promise<void> {
+    this.flushTranscriptBuffers();
     this.closed = true;
     if (this.session) {
       try {

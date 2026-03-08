@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useRef, type ReactNode } from 'react';
+import { createPortal } from 'react-dom';
 import { X } from 'lucide-react';
 
 interface ModalProps {
@@ -69,7 +70,7 @@ export function Modal({ isOpen, onClose, title, children, footer }: ModalProps) 
 
   if (!isOpen) return null;
 
-  return (
+  return createPortal(
     <div
       ref={overlayRef}
       className="fixed inset-0 z-50 flex items-center justify-center p-4 animate-fade-in"
@@ -114,6 +115,7 @@ export function Modal({ isOpen, onClose, title, children, footer }: ModalProps) 
           </div>
         )}
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }

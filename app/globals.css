@@ -50,7 +50,7 @@
   /* Aurora background — use on page wrappers */
   .aurora-bg {
     position: relative;
-    overflow: hidden;
+    overflow-x: hidden;
   }
 
   .aurora-bg::before {

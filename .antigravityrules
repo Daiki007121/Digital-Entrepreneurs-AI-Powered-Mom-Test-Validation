@@ -1,6 +1,6 @@
 # .antigravityrules — Digital Entrepreneurs MVP
 # Context Engineering rules for AI-assisted development (HW3 / P2)
-# Last updated: 2026-02-26
+# Last updated: 2026-03-06
 
 # ============================================================
 # 1. PROJECT CONTEXT
@@ -15,11 +15,11 @@
 ## Tech Stack
 - Frontend: Next.js 14 (App Router), React 18, Tailwind CSS
 - Backend: Node.js (Express), WebSocket (ws library)
-- Database: MongoDB (Mongoose ODM)
-- AI: OpenAI Realtime API (gpt-4o-realtime-preview) for voice, GPT-4o for analysis
-- Base: Forked from openai/openai-realtime-console (skip WebSocket plumbing)
-- Auth: NextAuth.js (JWT sessions)
-- Deployment: Vercel (frontend) + Railway (backend)
+- Database: Supabase (PostgreSQL)
+- AI: Google Gemini — `gemini-2.5-flash-native-audio-preview` (Gemini Live API) for voice, `gemini-3.1-pro-preview` for analysis
+- SDK: `@google/genai`
+- Auth: Supabase Auth (Google OAuth + email/password)
+- Deployment: Vercel (frontend) + Fly.io (Node.js relay server)
 
 ## Folder Structure
 ```
@@ -33,18 +33,19 @@
 │   ├── ui/                # Generic UI (Button, Card, Modal…)
 │   └── interview/         # Interview-specific components
 ├── lib/                   # Shared utilities
-│   ├── openai.ts          # OpenAI client helpers
-│   ├── mongodb.ts         # DB connection singleton
-│   └── momTest.ts         # Mom Test prompt logic
-├── server/                # Standalone Node.js/WebSocket server
+│   ├── gemini.ts          # Gemini client helpers
+│   ├── supabase.ts        # Supabase client singleton
+│   ├── mom-test.ts        # Mom Test prompt logic
+│   ├── hooks/             # Custom React hooks
+│   └── stores/            # Zustand stores
+├── server/                # Standalone Node.js/WebSocket server (proxies Gemini Live API)
 │   ├── index.ts           # Entry point
-│   ├── relay.ts           # OpenAI Realtime API relay
+│   ├── gemini-relay.ts    # Gemini Live API relay
 │   └── analysis.ts        # Transcript analysis pipeline
-├── models/                # Mongoose schemas
-│   ├── Interview.ts
-│   ├── Insight.ts
-│   └── User.ts
-├── prompts/               # System prompts as .txt or .md files
+├── types/                 # TypeScript interfaces / Supabase gen types
+│   ├── database.types.ts  # Auto-generated from Supabase
+│   └── index.ts           # Custom type aliases
+├── prompts/               # System prompts as .md files
 │   ├── momTestEnforcer.md
 │   └── insightAnalyzer.md
 └── tests/                 # Jest + React Testing Library
@@ -52,16 +53,16 @@
 
 ## Architecture Overview
 - Next.js frontend communicates with the Node.js relay server over WebSocket
-- Relay server forwards audio streams to/from OpenAI Realtime API
-- After each session, transcripts are saved to MongoDB
-- Analysis pipeline (GPT-4o) runs on saved transcripts and writes Insight documents
+- Relay server forwards audio streams to/from Gemini Live API
+- After each session, transcripts are saved to Supabase (PostgreSQL)
+- Analysis pipeline (Gemini 3.1 Pro) runs on saved transcripts and writes Insight documents
 - All AI instructions live in /prompts/ — never hardcoded inline
 
 ## Naming Conventions
 - Files/folders: kebab-case
 - React components: PascalCase
 - Variables/functions: camelCase
-- Mongoose models: PascalCase (singular noun)
+- Supabase tables: lowercase, plural noun (e.g., users, interviews, insights)
 - API routes: /api/[resource]/[action] (REST-ish)
 - Env vars: SCREAMING_SNAKE_CASE, prefixed with NEXT_PUBLIC_ for client-side
 
@@ -72,10 +73,13 @@
 - Async/await over raw Promises; always handle errors with try/catch
 - No magic strings — use constants or enums
 - Components under 150 lines; extract hooks for logic > 30 lines
+- All system prompts live in /prompts/ — never hardcoded inline
+- Write JSDoc comments for all exported functions in /lib and /server
 
 ## Testing Strategy
 - Framework: Jest + React Testing Library
-- Unit tests for: prompt logic (momTest.ts), analysis pipeline, Mongoose model validators
+- Strict TDD (tests first) for: `/lib` and `/server`
+- Smoke tests (after) for: UI components
 - Integration tests for: API routes (supertest)
 - E2E: Playwright for critical paths (start interview → view insight)
 - Coverage goal: 70% on /lib and /server; UI components need smoke tests only
@@ -85,33 +89,8 @@
 # ============================================================
 
 ## PRD Summary
-Full PRD: /docs/PRD.md (in repo root)
-
-### User Stories (Sprint 1)
-- As a founder, I can start a voice interview session so that I can gather unbiased user feedback
-- As a founder, I can see a real-time transcript during the interview so that I know the AI is on track
-- As a founder, I can end a session and have the transcript automatically saved
-- As a founder, I can view a list of past interview sessions on my dashboard
-
-### User Stories (Sprint 2)
-- As a founder, I can trigger AI analysis on a saved transcript so that I receive validated pain points
-- As a founder, I can view an insight report with key themes and a validation score
-- As a founder, I can export the insight report as PDF
-
-## Mockup / Design Guidance
-Mockups live in /docs/mockups/ (Figma export PNGs)
-
-Key screens:
-1. **Interview Setup Screen** — Single CTA "Start Interview", shows participant name field and topic selector
-2. **Live Interview Screen** — Split: left = real-time transcript scroll, right = AI status indicator (listening / speaking / thinking). Red "End Session" button bottom-right.
-3. **Dashboard** — Card grid of past sessions (date, participant, status: analyzed / pending). "New Interview" FAB.
-4. **Insight Report Screen** — Top: validation score badge. Middle: pain point list with evidence quotes. Bottom: recommended next steps.
-
-### UI Component Behavior
-- `<TranscriptFeed />` — auto-scrolls to bottom; new AI utterances highlighted in blue, user in gray
-- `<ValidationScore />` — animated radial progress bar (0–100); color: red < 40, yellow 40–70, green > 70
-- `<PainPointCard />` — expandable; shows evidence quotes on expand
-- All modals use a shared `<Modal />` component with focus trap
+Full PRD: /docs/PRD.md (in repo root).
+Please refer to this document for User Stories, Sprint planning, UI Component Behaviors, and specific product requirements.
 
 ### Mom Test Enforcement Rules (critical for AI implementation)
 The voice AI must:
@@ -147,7 +126,7 @@ Types: feat | fix | chore | docs | test | refactor | style
 Scope: ui | server | db | prompts | auth | ci
 
 Examples:
-  feat(server): add OpenAI Realtime API relay
+  feat(server): add Gemini Live API relay
   fix(ui): transcript feed not auto-scrolling on mobile
   chore(ci): add ESLint GitHub Action
   Closes #5
@@ -175,20 +154,20 @@ Example:
 # ============================================================
 
 ## ✅ DO
-- Use the OpenAI Realtime API relay pattern from openai-realtime-console as the base
+- Use the Gemini Live API relay pattern — relay server proxies audio between browser and Gemini
 - Store all system prompts in /prompts/ — never inline them in code
-- Use Mongoose transactions for writes that touch multiple collections
+- Use Supabase RPCs or edge functions for writes that touch multiple tables
 - Validate all user inputs server-side (Zod schemas)
 - Use React Server Components for data-fetching pages; Client Components only when interactivity needed
-- Log all AI tool calls and model responses to MongoDB for debugging
+- Log all AI tool calls and model responses to Supabase for debugging
 - Use environment variables for ALL secrets — never hardcode API keys
 - Write JSDoc comments for all exported functions in /lib and /server
 - Handle WebSocket disconnects gracefully (auto-reconnect with exponential backoff)
 
 ## ❌ DON'T
 - Don't use `any` type in TypeScript
-- Don't call OpenAI API directly from Next.js API routes — always go through the relay server
-- Don't store audio files in MongoDB — use URLs/references only
+- Don't call Gemini API directly from Next.js API routes — always go through the relay server
+- Don't store audio files in Supabase Database — use Supabase Storage (URLs/references only)
 - Don't mix business logic into React components — keep components presentational
 - Don't skip error boundaries on the interview screen (WebSocket errors must not crash the UI)
 - Don't use `alert()` — use the toast notification system
@@ -197,6 +176,7 @@ Example:
 
 ## Preferred Libraries
 - HTTP client: native `fetch` (not axios)
+- AI SDK: `@google/genai` (Google Gemini)
 - Forms: React Hook Form + Zod
 - State: Zustand for global state; useState/useReducer for local
 - Dates: date-fns (not moment)
@@ -205,8 +185,8 @@ Example:
 
 ## Security Requirements
 - Sanitize all transcript text before storing (prevent XSS via DOMPurify)
-- Rate-limit `/api/interview/start` to 10 req/min per user
-- Never expose OpenAI API key to client — relay server only
+- Rate-limit `/api/interview/start` to 10 req/min per user (post-MVP, see #17)
+- Never expose Google AI API key to client — relay server only
 - Validate session ownership before serving transcript data
 
 ## Accessibility Requirements

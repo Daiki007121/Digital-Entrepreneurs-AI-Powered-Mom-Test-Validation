@@ -1,0 +1,36 @@
+/** @type {import('jest').Config} */
+const config = {
+  testEnvironment: 'jsdom',
+  transform: {
+    '^.+\\.tsx?$': [
+      'ts-jest',
+      {
+        tsconfig: {
+          jsx: 'react-jsx',
+          module: 'esnext',
+          moduleResolution: 'bundler',
+          esModuleInterop: true,
+          paths: { '@/*': ['./*'] },
+        },
+      },
+    ],
+  },
+  moduleNameMapper: {
+    '^@/(.*)$': '<rootDir>/$1',
+    '^@google/genai$': '<rootDir>/node_modules/@google/genai',
+    '^@supabase/supabase-js$': '<rootDir>/node_modules/@supabase/supabase-js',
+  },
+  testMatch: ['<rootDir>/tests/**/*.test.ts', '<rootDir>/tests/**/*.test.tsx'],
+  setupFilesAfterEnv: ['@testing-library/jest-dom'],
+  collectCoverageFrom: ['lib/**/*.ts', 'server/**/*.ts', '!**/*.d.ts', '!**/node_modules/**'],
+  coverageThreshold: {
+    global: {
+      branches: 70,
+      functions: 70,
+      lines: 70,
+      statements: 70,
+    },
+  },
+};
+
+module.exports = config;

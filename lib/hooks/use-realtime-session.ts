@@ -3,6 +3,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { WS_RECONNECT_MAX_RETRIES, WS_CLOSE_DELAY_MS } from '@/lib/constants';
+import { logger } from '@/lib/logger';
 import type { TranscriptEntry } from '@/types';
 
 type ConnectionStatus = 'idle' | 'connecting' | 'connected' | 'disconnected' | 'error';
@@ -108,7 +109,7 @@ export function useRealtimeSession(): RealtimeSessionReturn {
     ws.onmessage = (event) => {
       try {
         const msg = JSON.parse(event.data as string) as ServerMessage;
-        console.log('[RealtimeSession] Received message:', msg.type, msg);
+        logger.debug('[RealtimeSession] Received message:', msg.type);
 
         const cb = callbacksRef.current;
         if (!cb) return;

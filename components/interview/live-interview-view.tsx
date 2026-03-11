@@ -42,7 +42,7 @@ export function LiveInterviewView({
   const store = useInterviewStore();
   const { startCapture, stopCapture, isMuted, toggleMute, playAudio, stopPlayback } =
     useAudioSession();
-  const { connectionStatus, connect, disconnect, sendAudio, sendRms } =
+  const { connectionStatus, connect, disconnect, sendAudio, sendRms, sendTurnComplete } =
     useRealtimeSession();
 
   const handleEndSession = useCallback(() => {
@@ -76,14 +76,20 @@ export function LiveInterviewView({
 
     // Start audio capture + WebSocket in parallel for fast initialization.
     // Keep spinner until server confirms Gemini is connected (session_started).
-    const init = () => {
-      startCapture({
+    const init = async () => {
+      const actualSampleRate = await startCapture({
         onAudioData: (base64) => sendAudio(base64),
         onRmsValue: (rms) => sendRms(rms),
+        onSilenceTimeout: () => sendTurnComplete(),
       });
 
+      if (!actualSampleRate) {
+        setIsInitializing(false);
+        return;
+      }
+
       connect(
-        { interviewId, topic, targetUser, userId },
+        { interviewId, topic, targetUser, userId, sampleRate: actualSampleRate },
         {
           onAudio: (base64) => {
             playAudio(base64);
@@ -167,13 +173,12 @@ export function LiveInterviewView({
             <SilenceIndicator silenceSeconds={store.silenceSeconds} />
             <SessionTimer elapsedSeconds={store.elapsedSeconds} />
             <div
-              className={`w-2 h-2 rounded-full ${
-                connectionStatus === 'connected'
-                  ? 'bg-green-500'
-                  : connectionStatus === 'connecting'
-                    ? 'bg-amber-500 animate-pulse'
-                    : 'bg-red-500'
-              }`}
+              className={`w-2 h-2 rounded-full ${connectionStatus === 'connected'
+                ? 'bg-green-500'
+                : connectionStatus === 'connecting'
+                  ? 'bg-amber-500 animate-pulse'
+                  : 'bg-red-500'
+                }`}
               aria-label={`Connection: ${connectionStatus}`}
             />
           </div>

@@ -3,6 +3,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { WS_RECONNECT_MAX_RETRIES, WS_CLOSE_DELAY_MS } from '@/lib/constants';
+import { logger } from '@/lib/logger';
 import type { TranscriptEntry } from '@/types';
 
 type ConnectionStatus = 'idle' | 'connecting' | 'connected' | 'disconnected' | 'error';
@@ -21,6 +22,7 @@ interface SessionConfig {
   topic: string;
   targetUser: string;
   userId: string;
+  sampleRate: number;
 }
 
 interface RealtimeSessionCallbacks {
@@ -41,6 +43,7 @@ interface RealtimeSessionReturn {
   disconnect: () => void;
   sendAudio: (base64Audio: string) => void;
   sendRms: (rms: number) => void;
+  sendTurnComplete: () => void;
 }
 
 const RELAY_URL = process.env.NEXT_PUBLIC_RELAY_SERVER_URL || 'ws://localhost:8081';
@@ -74,7 +77,7 @@ export function useRealtimeSession(): RealtimeSessionReturn {
       wsRef.current.onerror = null;
       wsRef.current.onmessage = null;
       if (wsRef.current.readyState === WebSocket.OPEN ||
-          wsRef.current.readyState === WebSocket.CONNECTING) {
+        wsRef.current.readyState === WebSocket.CONNECTING) {
         wsRef.current.close();
       }
       wsRef.current = null;
@@ -106,6 +109,8 @@ export function useRealtimeSession(): RealtimeSessionReturn {
     ws.onmessage = (event) => {
       try {
         const msg = JSON.parse(event.data as string) as ServerMessage;
+        logger.debug('[RealtimeSession] Received message:', msg.type);
+
         const cb = callbacksRef.current;
         if (!cb) return;
 
@@ -229,6 +234,12 @@ export function useRealtimeSession(): RealtimeSessionReturn {
     }
   }, []);
 
+  const sendTurnComplete = useCallback(() => {
+    if (wsRef.current?.readyState === WebSocket.OPEN) {
+      wsRef.current.send(JSON.stringify({ type: 'client_turn_complete' }));
+    }
+  }, []);
+
   useEffect(() => {
     return () => {
       intentionalCloseRef.current = true;
@@ -236,5 +247,5 @@ export function useRealtimeSession(): RealtimeSessionReturn {
     };
   }, [cleanup]);
 
-  return { connectionStatus, connect, disconnect, sendAudio, sendRms };
+  return { connectionStatus, connect, disconnect, sendAudio, sendRms, sendTurnComplete };
 }

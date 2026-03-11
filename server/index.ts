@@ -76,6 +76,11 @@ wss.on('connection', (ws: WebSocket) => {
           break;
         }
 
+        case 'client_turn_complete': {
+          sessionManager.handleTurnComplete(ws);
+          break;
+        }
+
         default: {
           sendError(ws, `Unknown message type: ${(message as ClientMessage).type}`);
         }

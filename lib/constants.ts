@@ -29,7 +29,7 @@ export type TranscriptSpeaker = (typeof TRANSCRIPT_SPEAKER)[keyof typeof TRANSCR
 export const WS_RECONNECT_MAX_RETRIES = 5;
 
 /** RMS silence threshold — values below this are considered silence */
-export const RMS_SILENCE_THRESHOLD = 0.01;
+export const RMS_SILENCE_THRESHOLD = 0.05;
 
 /** Transcript checkpoint interval in milliseconds (30 seconds) */
 export const TRANSCRIPT_CHECKPOINT_INTERVAL_MS = 30_000;

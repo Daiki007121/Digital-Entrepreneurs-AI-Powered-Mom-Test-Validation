@@ -7,6 +7,7 @@ const GEMINI_MODEL = 'gemini-2.5-flash-native-audio-latest';
 
 export interface GeminiRelayCallbacks {
   onTranscript: (entry: TranscriptEntry) => void;
+  onTurnComplete: () => void;
   onError: (error: string) => void;
 }
 
@@ -23,10 +24,12 @@ export class GeminiRelay {
   private aiTranscriptBuffer = '';
   /** Buffer for accumulating user input transcription fragments */
   private userTranscriptBuffer = '';
+  private sampleRate: number;
 
-  constructor(ws: WebSocket, callbacks: GeminiRelayCallbacks) {
+  constructor(ws: WebSocket, callbacks: GeminiRelayCallbacks, sampleRate: number) {
     this.ws = ws;
     this.callbacks = callbacks;
+    this.sampleRate = sampleRate;
   }
 
   /**
@@ -97,11 +100,24 @@ export class GeminiRelay {
       this.session.sendRealtimeInput({
         audio: {
           data: base64Audio,
-          mimeType: 'audio/pcm;rate=24000',
+          mimeType: `audio/pcm;rate=${this.sampleRate}`,
         },
       });
     } catch (err) {
       console.error('[GeminiRelay] Error sending audio:', err);
+    }
+  }
+
+  /**
+   * Explictly signals to Gemini that the user has stopped speaking via a clientContent message.
+   * This forces the VAD to stop waiting and generate a response immediately.
+   */
+  sendTurnComplete(): void {
+    if (!this.session || this.closed) return;
+    try {
+      this.session.sendClientContent({ turns: [], turnComplete: true });
+    } catch (err) {
+      console.error('[GeminiRelay] Error sending turn complete:', err);
     }
   }
 
@@ -152,12 +168,14 @@ export class GeminiRelay {
       if (serverContent.turnComplete) {
         this.flushTranscriptBuffers();
         this.sendToClient({ type: 'turn_complete' });
+        this.callbacks.onTurnComplete();
       }
 
       // Handle interruption — flush whatever we have so far
       if (serverContent.interrupted) {
         this.flushTranscriptBuffers();
         this.sendToClient({ type: 'interrupted' });
+        this.callbacks.onTurnComplete();
       }
     }
   }

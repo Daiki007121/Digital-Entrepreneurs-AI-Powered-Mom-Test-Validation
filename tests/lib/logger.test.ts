@@ -17,15 +17,19 @@ describe('logger', () => {
     errorSpy = jest.spyOn(console, 'error').mockImplementation(() => undefined);
   });
 
+  const setNodeEnv = (value: string | undefined) => {
+    Object.defineProperty(process.env, 'NODE_ENV', { value, writable: true, configurable: true });
+  };
+
   afterEach(() => {
-    process.env.NODE_ENV = originalNodeEnv;
+    setNodeEnv(originalNodeEnv);
     jest.restoreAllMocks();
     jest.resetModules();
   });
 
   describe('in non-production (development)', () => {
     beforeEach(() => {
-      process.env.NODE_ENV = 'test';
+      setNodeEnv('test');
     });
 
     it('calls console.debug for debug()', async () => {
@@ -71,7 +75,7 @@ describe('logger', () => {
       // We need to re-evaluate the module with NODE_ENV=production
       // Since isProduction is evaluated at module load time, we reset modules
       jest.resetModules();
-      process.env.NODE_ENV = 'production';
+      setNodeEnv('production');
     });
 
     it('suppresses console.debug in production', async () => {

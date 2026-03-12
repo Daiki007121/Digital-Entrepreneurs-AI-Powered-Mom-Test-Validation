@@ -143,4 +143,76 @@ describe('analyzeTranscript', () => {
 
     await expect(analyzeTranscript('interview-1')).rejects.toThrow('empty transcript');
   });
+
+  it('throws if GOOGLE_AI_API_KEY is not set', async () => {
+    delete process.env.GOOGLE_AI_API_KEY;
+    mockSingle.mockResolvedValueOnce({ data: mockInterview, error: null });
+
+    await expect(analyzeTranscript('interview-1')).rejects.toThrow('GOOGLE_AI_API_KEY');
+  });
+
+  it('throws if SUPABASE_URL is not set', async () => {
+    delete process.env.SUPABASE_URL;
+
+    await expect(analyzeTranscript('interview-1')).rejects.toThrow(
+      'Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY',
+    );
+  });
+
+  it('retries on 429 and succeeds', async () => {
+    const error429 = new Error('Rate limit');
+    (error429 as unknown as Record<string, unknown>).status = 429;
+
+    mockSingle.mockResolvedValueOnce({ data: mockInterview, error: null });
+    mockGenerateContent
+      .mockRejectedValueOnce(error429)
+      .mockResolvedValueOnce({ text: JSON.stringify(mockAnalysisResult) });
+
+    await analyzeTranscript('interview-1');
+
+    expect(mockGenerateContent).toHaveBeenCalledTimes(2);
+    expect(mockInsert).toHaveBeenCalled();
+  });
+
+  it('throws if Gemini insert to insights fails', async () => {
+    mockSingle.mockResolvedValueOnce({ data: mockInterview, error: null });
+    mockGenerateContent.mockResolvedValueOnce({ text: JSON.stringify(mockAnalysisResult) });
+    mockInsert.mockResolvedValueOnce({ error: { message: 'Insert failed' } });
+
+    await expect(analyzeTranscript('interview-1')).rejects.toThrow('Failed to insert insight');
+  });
+
+  it('throws if interview status update fails', async () => {
+    mockSingle.mockResolvedValueOnce({ data: mockInterview, error: null });
+    mockGenerateContent.mockResolvedValueOnce({ text: JSON.stringify(mockAnalysisResult) });
+    mockInsert.mockResolvedValueOnce({ error: null }); // insights insert succeeds
+    mockUpdateEq.mockResolvedValueOnce({ error: { message: 'Update failed' } });
+
+    await expect(analyzeTranscript('interview-1')).rejects.toThrow('Failed to update interview status');
+  });
+
+  it('throws after max retries exhausted on 500 error', async () => {
+    const error500 = new Error('Internal server error');
+    (error500 as unknown as Record<string, unknown>).status = 500;
+
+    mockSingle.mockResolvedValueOnce({ data: mockInterview, error: null });
+    mockGenerateContent
+      .mockRejectedValueOnce(error500)
+      .mockRejectedValueOnce(error500)
+      .mockRejectedValueOnce(error500);
+
+    await expect(analyzeTranscript('interview-1')).rejects.toThrow('Internal server error');
+    expect(mockGenerateContent).toHaveBeenCalledTimes(3);
+  });
+
+  it('does not retry on non-retryable errors', async () => {
+    const error400 = new Error('Bad request');
+    (error400 as unknown as Record<string, unknown>).status = 400;
+
+    mockSingle.mockResolvedValueOnce({ data: mockInterview, error: null });
+    mockGenerateContent.mockRejectedValueOnce(error400);
+
+    await expect(analyzeTranscript('interview-1')).rejects.toThrow('Bad request');
+    expect(mockGenerateContent).toHaveBeenCalledTimes(1);
+  });
 });

@@ -1,0 +1,1060 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>API Reference — Digital Entrepreneurs</title>
+  <style>
+    :root {
+      --bg: #0d1117;
+      --bg-surface: #161b22;
+      --bg-card: #1c2128;
+      --bg-code: #0d1117;
+      --border: #30363d;
+      --text: #e6edf3;
+      --text-muted: #8b949e;
+      --text-dim: #6e7681;
+      --accent-blue: #58a6ff;
+      --accent-green: #3fb950;
+      --accent-red: #f85149;
+      --accent-orange: #d29922;
+      --accent-purple: #bc8cff;
+      --client-bg: #051d3c;
+      --client-border: #1f4b8e;
+      --server-bg: #052015;
+      --server-border: #1a5c2a;
+      --error-bg: #2a0d0c;
+      --error-border: #7d2c28;
+      --font-mono: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+      --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--font-sans);
+      font-size: 14px;
+      line-height: 1.6;
+      display: flex;
+      min-height: 100vh;
+    }
+
+    /* Sidebar */
+    nav {
+      width: 260px;
+      min-width: 260px;
+      background: var(--bg-surface);
+      border-right: 1px solid var(--border);
+      padding: 24px 0;
+      position: sticky;
+      top: 0;
+      height: 100vh;
+      overflow-y: auto;
+    }
+
+    .nav-logo {
+      padding: 0 20px 20px;
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 16px;
+    }
+
+    .nav-logo h1 {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text);
+      line-height: 1.3;
+    }
+
+    .nav-logo p {
+      font-size: 11px;
+      color: var(--text-muted);
+      margin-top: 2px;
+    }
+
+    .nav-section {
+      padding: 0 8px;
+      margin-bottom: 8px;
+    }
+
+    .nav-section-title {
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--text-dim);
+      padding: 8px 12px 4px;
+    }
+
+    .nav-section a {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 5px 12px;
+      border-radius: 6px;
+      color: var(--text-muted);
+      text-decoration: none;
+      font-size: 13px;
+      transition: background 0.1s, color 0.1s;
+    }
+
+    .nav-section a:hover {
+      background: var(--bg-card);
+      color: var(--text);
+    }
+
+    .nav-section a .badge {
+      font-size: 10px;
+      font-weight: 600;
+      padding: 1px 6px;
+      border-radius: 4px;
+      margin-left: auto;
+    }
+
+    .badge-ws { background: #1f4b8e; color: #79c0ff; }
+    .badge-get { background: #0e3a27; color: #56d364; }
+    .badge-post { background: #3d2200; color: #e3b341; }
+    .badge-patch { background: #2a1f00; color: #c9a227; }
+    .badge-delete { background: #3a0d0c; color: #f85149; }
+
+    /* Main content */
+    main {
+      flex: 1;
+      padding: 40px 48px;
+      max-width: 900px;
+    }
+
+    h1.page-title {
+      font-size: 28px;
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 8px;
+    }
+
+    .page-subtitle {
+      font-size: 15px;
+      color: var(--text-muted);
+      margin-bottom: 40px;
+    }
+
+    h2 {
+      font-size: 20px;
+      font-weight: 600;
+      color: var(--text);
+      margin: 48px 0 16px;
+      padding-top: 48px;
+      border-top: 1px solid var(--border);
+    }
+
+    h2:first-of-type { border-top: none; margin-top: 0; padding-top: 0; }
+
+    h3 {
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--text);
+      margin: 32px 0 12px;
+    }
+
+    h4 {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      margin: 20px 0 8px;
+    }
+
+    p { margin-bottom: 12px; color: var(--text); }
+
+    ul, ol {
+      margin: 0 0 12px 20px;
+      color: var(--text);
+    }
+
+    li { margin-bottom: 4px; }
+
+    a { color: var(--accent-blue); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    code {
+      font-family: var(--font-mono);
+      font-size: 12px;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 1px 5px;
+      color: var(--accent-purple);
+    }
+
+    /* Code blocks */
+    pre {
+      background: var(--bg-code);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 16px;
+      overflow-x: auto;
+      margin: 12px 0 20px;
+      position: relative;
+    }
+
+    pre code {
+      font-family: var(--font-mono);
+      font-size: 12px;
+      background: none;
+      border: none;
+      padding: 0;
+      color: var(--text);
+    }
+
+    /* Message type cards */
+    .message-card {
+      border-radius: 8px;
+      border: 1px solid;
+      margin: 16px 0;
+      overflow: hidden;
+    }
+
+    .message-card.client {
+      border-color: var(--client-border);
+      background: var(--client-bg);
+    }
+
+    .message-card.server {
+      border-color: var(--server-border);
+      background: var(--server-bg);
+    }
+
+    .message-card.error-card {
+      border-color: var(--error-border);
+      background: var(--error-bg);
+    }
+
+    .message-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 16px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .message-header .type-badge {
+      font-family: var(--font-mono);
+      font-size: 12px;
+      font-weight: 700;
+      padding: 2px 8px;
+      border-radius: 4px;
+    }
+
+    .client .type-badge { background: #1f4b8e; color: #79c0ff; }
+    .server .type-badge { background: #1a5c2a; color: #56d364; }
+    .error-card .type-badge { background: #7d2c28; color: #f85149; }
+
+    .message-header .direction {
+      font-size: 11px;
+      color: var(--text-dim);
+    }
+
+    .message-body { padding: 14px 16px; }
+
+    .message-body p { margin-bottom: 8px; font-size: 13px; }
+    .message-body p:last-child { margin-bottom: 0; }
+
+    .message-body pre {
+      margin: 8px 0 0;
+      background: rgba(0,0,0,0.3);
+    }
+
+    /* Tables */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 12px 0 20px;
+      font-size: 13px;
+    }
+
+    th {
+      text-align: left;
+      padding: 8px 12px;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      color: var(--text-muted);
+      font-weight: 600;
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+    }
+
+    td {
+      padding: 8px 12px;
+      border: 1px solid var(--border);
+      vertical-align: top;
+    }
+
+    tr:nth-child(even) td { background: rgba(255,255,255,0.02); }
+
+    /* Endpoint badges */
+    .endpoint {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 12px 16px;
+      margin: 12px 0 16px;
+      font-family: var(--font-mono);
+      font-size: 13px;
+    }
+
+    .method {
+      font-weight: 700;
+      font-size: 12px;
+      padding: 2px 8px;
+      border-radius: 4px;
+    }
+
+    .method-get { background: #0e3a27; color: #56d364; }
+    .method-post { background: #3d2200; color: #e3b341; }
+    .method-patch { background: #2a1f00; color: #c9a227; }
+    .method-delete { background: #3a0d0c; color: #f85149; }
+    .method-ws { background: #1f4b8e; color: #79c0ff; }
+
+    .endpoint-path { color: var(--text); }
+
+    /* Callout boxes */
+    .callout {
+      border-radius: 8px;
+      padding: 12px 16px;
+      margin: 12px 0;
+      font-size: 13px;
+      display: flex;
+      gap: 10px;
+    }
+
+    .callout-icon { flex-shrink: 0; margin-top: 1px; }
+
+    .callout.info {
+      background: #051d3c;
+      border: 1px solid #1f4b8e;
+      color: #79c0ff;
+    }
+
+    .callout.warning {
+      background: #261700;
+      border: 1px solid #7d4e00;
+      color: #e3b341;
+    }
+
+    .callout.note {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      color: var(--text-muted);
+    }
+
+    /* Constants table */
+    .constants-table td:first-child {
+      font-family: var(--font-mono);
+      font-size: 12px;
+      color: var(--accent-purple);
+    }
+
+    .constants-table td:nth-child(2) {
+      font-family: var(--font-mono);
+      font-size: 12px;
+      color: var(--accent-green);
+    }
+
+    /* Lifecycle diagram */
+    .lifecycle-diagram {
+      background: var(--bg-code);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 20px;
+      font-family: var(--font-mono);
+      font-size: 12px;
+      line-height: 1.8;
+      overflow-x: auto;
+      color: var(--text-muted);
+    }
+
+    .lifecycle-diagram .client-msg { color: #79c0ff; }
+    .lifecycle-diagram .server-msg { color: #56d364; }
+    .lifecycle-diagram .gemini-msg { color: var(--accent-purple); }
+    .lifecycle-diagram .comment { color: var(--text-dim); }
+
+    /* Base URL table */
+    .url-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin: 16px 0;
+    }
+
+    .url-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 14px 16px;
+    }
+
+    .url-card .env-label {
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      color: var(--text-dim);
+      margin-bottom: 6px;
+    }
+
+    .url-card .url {
+      font-family: var(--font-mono);
+      font-size: 12px;
+      color: var(--accent-blue);
+      word-break: break-all;
+    }
+
+    /* Top anchor */
+    .anchor { scroll-margin-top: 20px; }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+      nav { display: none; }
+      main { padding: 24px 20px; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- Sidebar Navigation -->
+<nav>
+  <div class="nav-logo">
+    <h1>Digital Entrepreneurs</h1>
+    <p>API Reference</p>
+  </div>
+
+  <div class="nav-section">
+    <div class="nav-section-title">Overview</div>
+    <a href="#overview">Introduction</a>
+    <a href="#base-urls">Base URLs</a>
+    <a href="#authentication">Authentication</a>
+  </div>
+
+  <div class="nav-section">
+    <div class="nav-section-title">WebSocket Relay</div>
+    <a href="#ws-connection">Connection <span class="badge badge-ws">WS</span></a>
+    <a href="#ws-start-session">start_session <span class="badge badge-ws">C→S</span></a>
+    <a href="#ws-audio">audio <span class="badge badge-ws">C→S</span></a>
+    <a href="#ws-rms">rms <span class="badge badge-ws">C→S</span></a>
+    <a href="#ws-client-turn-complete">client_turn_complete <span class="badge badge-ws">C→S</span></a>
+    <a href="#ws-end-session">end_session <span class="badge badge-ws">C→S</span></a>
+    <a href="#ws-session-started">session_started <span class="badge badge-ws">S→C</span></a>
+    <a href="#ws-audio-out">audio (out) <span class="badge badge-ws">S→C</span></a>
+    <a href="#ws-transcript">transcript <span class="badge badge-ws">S→C</span></a>
+    <a href="#ws-user-transcript">user_transcript <span class="badge badge-ws">S→C</span></a>
+    <a href="#ws-turn-complete">turn_complete <span class="badge badge-ws">S→C</span></a>
+    <a href="#ws-interrupted">interrupted <span class="badge badge-ws">S→C</span></a>
+    <a href="#ws-warning">warning <span class="badge badge-ws">S→C</span></a>
+    <a href="#ws-silence-detected">silence_detected <span class="badge badge-ws">S→C</span></a>
+    <a href="#ws-session-ended">session_ended <span class="badge badge-ws">S→C</span></a>
+    <a href="#ws-error">error <span class="badge badge-ws">S→C</span></a>
+    <a href="#session-lifecycle">Session Lifecycle</a>
+  </div>
+
+  <div class="nav-section">
+    <div class="nav-section-title">REST API</div>
+    <a href="#health">GET /health <span class="badge badge-get">GET</span></a>
+    <a href="#post-interview-start">POST /interview/start <span class="badge badge-post">POST</span></a>
+    <a href="#get-interviews">GET /interviews <span class="badge badge-get">GET</span></a>
+    <a href="#get-interview-id">GET /interview/:id <span class="badge badge-get">GET</span></a>
+    <a href="#patch-interview-id">PATCH /interview/:id <span class="badge badge-patch">PATCH</span></a>
+    <a href="#delete-interview-id">DELETE /interview/:id <span class="badge badge-delete">DEL</span></a>
+    <a href="#get-insight">GET /interview/:id/insight <span class="badge badge-get">GET</span></a>
+  </div>
+
+  <div class="nav-section">
+    <div class="nav-section-title">Reference</div>
+    <a href="#error-handling">Error Handling</a>
+    <a href="#rate-limits">Rate Limits</a>
+    <a href="#constants">Server Constants</a>
+  </div>
+</nav>
+
+<!-- Main Content -->
+<main>
+  <h1 class="page-title anchor" id="overview">API Reference</h1>
+  <p class="page-subtitle">Digital Entrepreneurs — Mom Test AI Interview Platform</p>
+
+  <p>The platform exposes two API surfaces:</p>
+  <ul>
+    <li><strong>WebSocket Relay API</strong> — a Node.js/Express server that brokers real-time bidirectional audio and transcript streaming between the browser and Google Gemini Live API.</li>
+    <li><strong>REST API</strong> — Next.js App Router route handlers that manage interview records and AI insight reports in Supabase.</li>
+  </ul>
+
+  <h2 class="anchor" id="base-urls">Base URLs</h2>
+
+  <div class="url-grid">
+    <div class="url-card">
+      <div class="env-label">Local Development</div>
+      <div class="url">ws://localhost:8081/ws</div>
+      <div class="url" style="margin-top:6px">http://localhost:3000/api</div>
+    </div>
+    <div class="url-card">
+      <div class="env-label">Production</div>
+      <div class="url">wss://digital-entrepreneurs-relay.fly.dev/ws</div>
+      <div class="url" style="margin-top:6px">https://digital-entrepreneurs.vercel.app/api</div>
+    </div>
+  </div>
+
+  <!-- WebSocket Section -->
+  <h2>WebSocket Relay API</h2>
+
+  <h3 class="anchor" id="ws-connection">Connection</h3>
+  <p>Connect to the WebSocket path <code>/ws</code> on the relay host. All messages are JSON-encoded text frames in both directions. No authentication headers are needed at the WebSocket level — ownership is established by the <code>start_session</code> message payload.</p>
+
+  <pre><code>// Local dev
+const ws = new WebSocket('ws://localhost:8081/ws');
+
+// Production
+const ws = new WebSocket('wss://digital-entrepreneurs-relay.fly.dev/ws');</code></pre>
+
+  <h3>TypeScript Interfaces</h3>
+  <pre><code>interface SessionConfig {
+  interviewId: string;  // UUID from POST /api/interview/start
+  topic: string;        // Business idea / product topic
+  targetUser: string;   // Target customer persona description
+  userId: string;       // Supabase auth user UUID
+  sampleRate: number;   // Microphone sample rate in Hz (typically 16000)
+}
+
+interface ClientMessage {
+  type: 'audio' | 'rms' | 'start_session' | 'end_session' | 'client_turn_complete';
+  data?: string;          // base64 PCM16 audio (type: 'audio')
+  rms?: number;           // volume level 0–1 (type: 'rms')
+  config?: SessionConfig; // session setup (type: 'start_session')
+}
+
+interface ServerMessage {
+  type: 'audio' | 'transcript' | 'user_transcript' | 'turn_complete'
+      | 'interrupted' | 'session_started' | 'session_ended'
+      | 'warning' | 'silence_detected' | 'error';
+  data?: string;           // base64 audio (type: 'audio')
+  text?: string;           // transcript text
+  message?: string;        // human-readable status or error
+  elapsedSeconds?: number; // session duration in seconds
+  silenceSeconds?: number; // silence duration in seconds
+}</code></pre>
+
+  <!-- Client messages -->
+  <h3 style="margin-top:32px; color: #79c0ff;">Client → Server Messages</h3>
+
+  <div class="message-card client anchor" id="ws-start-session">
+    <div class="message-header">
+      <span class="type-badge">start_session</span>
+      <span class="direction">Client → Server</span>
+    </div>
+    <div class="message-body">
+      <p>Initiates a new interview session. The server connects to Gemini Live API, loads the Mom Test prompt, and immediately instructs the AI to begin the interview.</p>
+      <p><strong>Required fields:</strong> <code>type</code>, <code>config</code></p>
+      <p>Connection has a 20-second timeout. On timeout, an <code>error</code> message is returned and the session is not created. If a session already exists for this WebSocket connection, it is ended first.</p>
+      <pre><code>{
+  "type": "start_session",
+  "config": {
+    "interviewId": "550e8400-e29b-41d4-a716-446655440000",
+    "topic": "B2B invoice management software",
+    "targetUser": "small business owners with 5-20 employees",
+    "userId": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+    "sampleRate": 16000
+  }
+}</code></pre>
+    </div>
+  </div>
+
+  <div class="message-card client anchor" id="ws-audio">
+    <div class="message-header">
+      <span class="type-badge">audio</span>
+      <span class="direction">Client → Server</span>
+    </div>
+    <div class="message-body">
+      <p>Streams a PCM16 audio chunk from the user's microphone. Send continuously while the user is speaking (e.g., every 100ms).</p>
+      <p><strong>Required fields:</strong> <code>type</code>, <code>data</code></p>
+      <p><code>data</code> must be base64-encoded PCM16. The MIME type sent to Gemini is <code>audio/pcm;rate=&lt;sampleRate&gt;</code>.</p>
+      <pre><code>{
+  "type": "audio",
+  "data": "UklGRiQAAABXQVZFZm10IBAAAA..."
+}</code></pre>
+    </div>
+  </div>
+
+  <div class="message-card client anchor" id="ws-rms">
+    <div class="message-header">
+      <span class="type-badge">rms</span>
+      <span class="direction">Client → Server</span>
+    </div>
+    <div class="message-body">
+      <p>Reports the current RMS (root mean square) audio level. Used server-side for silence detection. Send in sync with audio chunks.</p>
+      <p><strong>Required fields:</strong> <code>type</code>, <code>rms</code></p>
+      <p><code>rms</code> is a float in <code>[0, 1]</code>. Silence threshold is <code>0.05</code>. Silence detection only activates after the AI has produced its first output and only during the user's turn.</p>
+      <pre><code>{
+  "type": "rms",
+  "rms": 0.032
+}</code></pre>
+    </div>
+  </div>
+
+  <div class="message-card client anchor" id="ws-client-turn-complete">
+    <div class="message-header">
+      <span class="type-badge">client_turn_complete</span>
+      <span class="direction">Client → Server</span>
+    </div>
+    <div class="message-body">
+      <p>Signals that the user has finished speaking their turn. Forces Gemini to stop waiting for more audio and generate a response immediately (bypasses VAD wait time). Also triggers a debounced user transcript flush (~3 seconds).</p>
+      <p><strong>Required fields:</strong> <code>type</code></p>
+      <pre><code>{
+  "type": "client_turn_complete"
+}</code></pre>
+    </div>
+  </div>
+
+  <div class="message-card client anchor" id="ws-end-session">
+    <div class="message-header">
+      <span class="type-badge">end_session</span>
+      <span class="direction">Client → Server</span>
+    </div>
+    <div class="message-body">
+      <p>Explicitly ends the interview session. Clears timers, closes the Gemini connection, flushes transcript buffers, saves to Supabase, and auto-triggers the AI analysis pipeline.</p>
+      <p><strong>Required fields:</strong> <code>type</code></p>
+      <pre><code>{
+  "type": "end_session"
+}</code></pre>
+    </div>
+  </div>
+
+  <!-- Server messages -->
+  <h3 style="margin-top:32px; color: #3fb950;">Server → Client Messages</h3>
+
+  <div class="message-card server anchor" id="ws-session-started">
+    <div class="message-header">
+      <span class="type-badge">session_started</span>
+      <span class="direction">Server → Client</span>
+    </div>
+    <div class="message-body">
+      <p>Sent once the Gemini connection is established and the session is ready. The AI will begin speaking immediately after this.</p>
+      <pre><code>{
+  "type": "session_started",
+  "message": "Session 550e8400-e29b-41d4-a716-446655440000 started"
+}</code></pre>
+    </div>
+  </div>
+
+  <div class="message-card server anchor" id="ws-audio-out">
+    <div class="message-header">
+      <span class="type-badge">audio</span>
+      <span class="direction">Server → Client</span>
+    </div>
+    <div class="message-body">
+      <p>Streams AI-generated speech audio. Decode and play immediately. Multiple chunks are sent per AI turn — play them sequentially.</p>
+      <p><code>data</code> is base64-encoded PCM16 from Gemini's <code>serverContent.modelTurn.parts[].inlineData.data</code>.</p>
+      <pre><code>{
+  "type": "audio",
+  "data": "UklGRiQAAABXQVZFZm10IBAAAA..."
+}</code></pre>
+    </div>
+  </div>
+
+  <div class="message-card server anchor" id="ws-transcript">
+    <div class="message-header">
+      <span class="type-badge">transcript</span>
+      <span class="direction">Server → Client</span>
+    </div>
+    <div class="message-body">
+      <p>Delivers the AI interviewer's spoken text as a complete sentence. Accumulated from Gemini's <code>outputTranscription</code> deltas and flushed when the AI turn ends. Corresponds to <code>speaker: 'ai-transcription'</code> in the transcript log.</p>
+      <pre><code>{
+  "type": "transcript",
+  "text": "Tell me about the last time you had to manually chase down an unpaid invoice."
+}</code></pre>
+    </div>
+  </div>
+
+  <div class="message-card server anchor" id="ws-user-transcript">
+    <div class="message-header">
+      <span class="type-badge">user_transcript</span>
+      <span class="direction">Server → Client</span>
+    </div>
+    <div class="message-body">
+      <p>Delivers the user's spoken text as a complete sentence. Sent approximately 3 seconds after <code>client_turn_complete</code> via a debounce timer that captures all late-arriving Gemini <code>inputTranscription</code> deltas. Corresponds to <code>speaker: 'user'</code> in the transcript log.</p>
+      <pre><code>{
+  "type": "user_transcript",
+  "text": "Yeah, last month I had three clients that were over 60 days late."
+}</code></pre>
+    </div>
+  </div>
+
+  <div class="message-card server anchor" id="ws-turn-complete">
+    <div class="message-header">
+      <span class="type-badge">turn_complete</span>
+      <span class="direction">Server → Client</span>
+    </div>
+    <div class="message-body">
+      <p>Signals that the AI has finished its turn. The client should now enable the microphone and allow the user to speak.</p>
+      <pre><code>{
+  "type": "turn_complete"
+}</code></pre>
+    </div>
+  </div>
+
+  <div class="message-card server anchor" id="ws-interrupted">
+    <div class="message-header">
+      <span class="type-badge">interrupted</span>
+      <span class="direction">Server → Client</span>
+    </div>
+    <div class="message-body">
+      <p>Signals that the AI's turn was interrupted (user started speaking while AI was talking). Transcript buffers are flushed with whatever text was accumulated so far.</p>
+      <pre><code>{
+  "type": "interrupted"
+}</code></pre>
+    </div>
+  </div>
+
+  <div class="message-card server anchor" id="ws-warning">
+    <div class="message-header">
+      <span class="type-badge">warning</span>
+      <span class="direction">Server → Client</span>
+    </div>
+    <div class="message-body">
+      <p>Sent when the interview approaches or reaches the time limit. At 12 minutes, a warning is sent. At 15 minutes, the session is auto-ended immediately after the warning.</p>
+      <pre><code>// At 12 minutes
+{
+  "type": "warning",
+  "message": "Interview approaching time limit (12 minutes)",
+  "elapsedSeconds": 722
+}
+
+// At 15 minutes (session auto-ends after this)
+{
+  "type": "warning",
+  "message": "Interview auto-ending — maximum duration reached",
+  "elapsedSeconds": 900
+}</code></pre>
+    </div>
+  </div>
+
+  <div class="message-card server anchor" id="ws-silence-detected">
+    <div class="message-header">
+      <span class="type-badge">silence_detected</span>
+      <span class="direction">Server → Client</span>
+    </div>
+    <div class="message-body">
+      <p>Sent periodically while the user is silent during their turn. Starts at 5 seconds of silence. Auto-ends the session at 35 seconds.</p>
+      <pre><code>// Ongoing silence warning (5–34 seconds)
+{
+  "type": "silence_detected",
+  "silenceSeconds": 8
+}
+
+// Auto-end trigger (35 seconds — session_ended follows immediately)
+{
+  "type": "silence_detected",
+  "message": "Auto-ending due to extended silence",
+  "silenceSeconds": 35
+}</code></pre>
+    </div>
+  </div>
+
+  <div class="message-card server anchor" id="ws-session-ended">
+    <div class="message-header">
+      <span class="type-badge">session_ended</span>
+      <span class="direction">Server → Client</span>
+    </div>
+    <div class="message-body">
+      <p>Sent when the session has been fully torn down. Triggered by: explicit <code>end_session</code>, silence timeout, duration limit, or client disconnect. The AI analysis pipeline runs asynchronously after this.</p>
+      <pre><code>{
+  "type": "session_ended",
+  "message": "Interview session ended",
+  "elapsedSeconds": 487
+}</code></pre>
+    </div>
+  </div>
+
+  <div class="message-card error-card anchor" id="ws-error">
+    <div class="message-header">
+      <span class="type-badge">error</span>
+      <span class="direction">Server → Client</span>
+    </div>
+    <div class="message-body">
+      <p>Sent when a recoverable or non-recoverable error occurs. The connection is not automatically closed after an error (except when session initialization fails).</p>
+      <p>Common messages: <code>Missing session config</code>, <code>Missing audio data</code>, <code>Missing RMS value</code>, <code>Gemini connection timed out — please try again</code>, <code>Unknown message type: &lt;type&gt;</code>, <code>Gemini error: &lt;message&gt;</code></p>
+      <pre><code>{
+  "type": "error",
+  "message": "Gemini connection timed out — please try again"
+}</code></pre>
+    </div>
+  </div>
+
+  <!-- Session Lifecycle -->
+  <h3 class="anchor" id="session-lifecycle">Session Lifecycle</h3>
+  <p>The complete message flow for a typical interview session:</p>
+
+  <div class="lifecycle-diagram">
+<span class="comment">Client                     Relay Server               Gemini Live API</span>
+  |                              |                              |
+  |<span class="client-msg">-- start_session ----------></span>|                              |
+  |                              |<span class="gemini-msg">-- ai.live.connect() ------></span>|
+  |                              |<span class="gemini-msg">  &lt;-- onopen --------------</span>|
+  |                              |<span class="gemini-msg">-- sendClientContent() ----></span>|
+  |<span class="server-msg">&lt;-- session_started ---------</span>|                              |
+  |                              |                              |
+  |<span class="client-msg">-- audio (chunk) ----------></span>|<span class="gemini-msg">-- sendRealtimeInput ----></span>|
+  |<span class="client-msg">-- rms (0.12) -------------></span>|                              |
+  |<span class="client-msg">-- client_turn_complete ---></span>|<span class="gemini-msg">-- sendClientContent() ----></span>|
+  |                              |                              |
+  |                              |<span class="gemini-msg">  &lt;-- modelTurn (audio) ---</span>|
+  |<span class="server-msg">&lt;-- audio (AI speech) -------</span>|                              |
+  |<span class="server-msg">&lt;-- user_transcript ---------</span>|<span class="comment"> (~3s debounce)</span>               |
+  |                              |<span class="gemini-msg">  &lt;-- outputTranscription -</span>|
+  |                              |<span class="gemini-msg">  &lt;-- turnComplete --------</span>|
+  |<span class="server-msg">&lt;-- transcript (AI text) ----</span>|                              |
+  |<span class="server-msg">&lt;-- turn_complete -----------</span>|                              |
+  |                              |                              |
+  | <span class="comment">... more turns ...</span>         |                              |
+  |                              |                              |
+  |<span class="client-msg">-- end_session ------------></span>|                              |
+  |                              |<span class="gemini-msg">-- session.close() -----></span>|
+  |                              |<span class="comment"> Supabase: completeInterview()</span>|
+  |                              |<span class="comment"> analyzeTranscript() [async]</span> |
+  |<span class="server-msg">&lt;-- session_ended -----------</span>|                              |
+  </div>
+
+  <div class="callout note" style="margin-top:16px">
+    <span class="callout-icon">&#9432;</span>
+    <div><strong>Transcript checkpoints:</strong> Every 30 seconds the relay saves the transcript to Supabase as a rolling checkpoint. This preserves data even if the connection drops unexpectedly.</div>
+  </div>
+
+  <div class="callout info" style="margin-top:8px">
+    <span class="callout-icon">&#9432;</span>
+    <div><strong>Auto-analysis:</strong> After <code>session_ended</code>, the relay asynchronously runs the Gemini analysis pipeline. Poll <code>GET /api/interview/:id/insight</code> until it returns 200 to check when the insight report is ready.</div>
+  </div>
+
+  <!-- REST API -->
+  <h2>REST API</h2>
+  <p>All REST endpoints are Next.js App Router route handlers. Authentication is required for all endpoints (except <code>/health</code>). The client must include a valid Supabase session cookie.</p>
+
+  <h3 class="anchor" id="health">Health Check</h3>
+  <div class="endpoint">
+    <span class="method method-get">GET</span>
+    <span class="endpoint-path">/health</span>
+    <span style="color: var(--text-muted); font-size:12px; margin-left:auto">relay server only &bull; no auth</span>
+  </div>
+  <p>Returns relay server uptime. No authentication required.</p>
+  <pre><code>// Response 200
+{
+  "status": "ok",
+  "uptime": 3742.851
+}</code></pre>
+
+  <h3 class="anchor" id="post-interview-start">Create Interview</h3>
+  <div class="endpoint">
+    <span class="method method-post">POST</span>
+    <span class="endpoint-path">/api/interview/start</span>
+  </div>
+  <p>Creates a new interview record in Supabase. Returns the UUID to use as <code>interviewId</code> in the WebSocket <code>start_session</code> message.</p>
+
+  <h4>Request Body</h4>
+  <table>
+    <tr><th>Field</th><th>Type</th><th>Required</th><th>Description</th></tr>
+    <tr><td><code>participantName</code></td><td>string</td><td>Yes</td><td>Name of the person being interviewed</td></tr>
+    <tr><td><code>topic</code></td><td>string</td><td>Yes</td><td>Business idea or product topic</td></tr>
+    <tr><td><code>targetUser</code></td><td>string</td><td>Yes</td><td>Target customer persona description</td></tr>
+  </table>
+
+  <pre><code>// Request
+{
+  "participantName": "Jane Smith",
+  "topic": "B2B invoice management software",
+  "targetUser": "small business owners with 5-20 employees"
+}
+
+// Response 200
+{ "id": "550e8400-e29b-41d4-a716-446655440000" }</code></pre>
+
+  <h4>Errors</h4>
+  <table>
+    <tr><th>Status</th><th>Body</th><th>Condition</th></tr>
+    <tr><td>400</td><td><code>{ "error": "Participant name is required" }</code></td><td>Missing or blank participantName</td></tr>
+    <tr><td>400</td><td><code>{ "error": "Business idea/topic is required" }</code></td><td>Missing or blank topic</td></tr>
+    <tr><td>400</td><td><code>{ "error": "Target user description is required" }</code></td><td>Missing or blank targetUser</td></tr>
+    <tr><td>401</td><td><code>{ "error": "Unauthorized" }</code></td><td>No valid session</td></tr>
+    <tr><td>500</td><td><code>{ "error": "Failed to create interview" }</code></td><td>Supabase error</td></tr>
+  </table>
+
+  <h3 class="anchor" id="get-interviews">List Interviews</h3>
+  <div class="endpoint">
+    <span class="method method-get">GET</span>
+    <span class="endpoint-path">/api/interviews</span>
+  </div>
+  <p>Returns all interviews belonging to the authenticated user, ordered newest first. Used to populate the dashboard.</p>
+
+  <pre><code>// Response 200
+[
+  {
+    "id": "550e8400-e29b-41d4-a716-446655440000",
+    "participant_name": "Jane Smith",
+    "topic": "B2B invoice management software",
+    "target_user": "small business owners with 5-20 employees",
+    "status": "completed",
+    "duration_seconds": 487,
+    "created_at": "2026-03-10T14:22:00.000Z",
+    "updated_at": "2026-03-10T14:30:27.000Z"
+  }
+]</code></pre>
+
+  <h3 class="anchor" id="get-interview-id">Get Interview</h3>
+  <div class="endpoint">
+    <span class="method method-get">GET</span>
+    <span class="endpoint-path">/api/interview/:id</span>
+  </div>
+  <p>Returns the full interview record including the transcript array. Verifies that the interview belongs to the authenticated user.</p>
+
+  <pre><code>// Response 200
+{
+  "id": "550e8400-e29b-41d4-a716-446655440000",
+  "user_id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+  "participant_name": "Jane Smith",
+  "topic": "B2B invoice management software",
+  "target_user": "small business owners with 5-20 employees",
+  "status": "completed",
+  "duration_seconds": 487,
+  "transcript": [
+    { "speaker": "ai-transcription", "text": "Hello, I'm here to learn...", "timestamp": 1741614120000 },
+    { "speaker": "user", "text": "Sure, last month I had three clients...", "timestamp": 1741614135000 }
+  ],
+  "created_at": "2026-03-10T14:22:00.000Z",
+  "updated_at": "2026-03-10T14:30:27.000Z"
+}</code></pre>
+
+  <h4>Transcript Entry Shape</h4>
+  <pre><code>interface TranscriptEntry {
+  speaker: 'ai' | 'user' | 'ai-transcription';
+  text: string;
+  timestamp: number; // Unix milliseconds
+}</code></pre>
+
+  <h3 class="anchor" id="patch-interview-id">Update Interview</h3>
+  <div class="endpoint">
+    <span class="method method-patch">PATCH</span>
+    <span class="endpoint-path">/api/interview/:id</span>
+  </div>
+  <p>Updates an interview record. All fields are optional. Transcript text is sanitized server-side (HTML tags stripped).</p>
+
+  <table>
+    <tr><th>Field</th><th>Type</th><th>Description</th></tr>
+    <tr><td><code>transcript</code></td><td>TranscriptEntry[]</td><td>Array of transcript entries. Text is HTML-sanitized.</td></tr>
+    <tr><td><code>status</code></td><td>string</td><td>e.g., <code>'active'</code>, <code>'completed'</code></td></tr>
+    <tr><td><code>duration_seconds</code></td><td>number</td><td>Interview duration in seconds</td></tr>
+  </table>
+
+  <pre><code>// Response 200
+{ "success": true }</code></pre>
+
+  <h3 class="anchor" id="delete-interview-id">Delete Interview</h3>
+  <div class="endpoint">
+    <span class="method method-delete">DELETE</span>
+    <span class="endpoint-path">/api/interview/:id</span>
+  </div>
+  <p>Deletes an interview and all related records. Cascades to <code>insights</code> and <code>ai_logs</code> tables before deleting the interview row.</p>
+
+  <pre><code>// Response 200
+{ "success": true }</code></pre>
+
+  <h3 class="anchor" id="get-insight">Get Insight Report</h3>
+  <div class="endpoint">
+    <span class="method method-get">GET</span>
+    <span class="endpoint-path">/api/interview/:id/insight</span>
+  </div>
+  <p>Returns the AI-generated insight report for a completed interview plus interview metadata. The insight is created asynchronously after the WebSocket session ends.</p>
+
+  <div class="callout warning">
+    <span class="callout-icon">&#9888;</span>
+    <div>Returns <strong>404</strong> with <code>"Insight not found"</code> if the analysis is still running. Poll this endpoint with exponential backoff until it returns 200.</div>
+  </div>
+
+  <pre><code>// Response 200
+{
+  "interview": {
+    "id": "550e8400-e29b-41d4-a716-446655440000",
+    "participant_name": "Jane Smith",
+    "topic": "B2B invoice management software",
+    "target_user": "small business owners with 5-20 employees",
+    "status": "completed",
+    "duration_seconds": 487,
+    "created_at": "2026-03-10T14:22:00.000Z"
+  },
+  "insight": {
+    "id": "...",
+    "interview_id": "550e8400-e29b-41d4-a716-446655440000",
+    "pain_points": [...],
+    "validated": true,
+    "summary": "...",
+    "created_at": "2026-03-10T14:31:00.000Z"
+  }
+}</code></pre>
+
+  <!-- Authentication -->
+  <h2 class="anchor" id="authentication">Authentication</h2>
+  <p>All REST API endpoints use <strong>Supabase Auth</strong> (cookie-based sessions). Authentication is handled by the <code>getAuthUser()</code> helper which reads the session from request cookies using the Supabase SSR client.</p>
+  <ul>
+    <li><strong>Google OAuth</strong> — sign in with Google</li>
+    <li><strong>Email + password</strong> — standard email auth</li>
+  </ul>
+  <p>The authenticated user's <code>id</code> is automatically used to scope all database queries. Clients cannot access or modify other users' data.</p>
+  <p>The relay server uses a <strong>service role key</strong> (server-side only, never exposed to the client) for Supabase operations. The <code>userId</code> in <code>start_session</code> is trusted from the client — access control is enforced at the REST layer before the WebSocket session begins.</p>
+
+  <!-- Error Handling -->
+  <h2 class="anchor" id="error-handling">Error Handling</h2>
+
+  <h3>WebSocket Errors</h3>
+  <p>All WebSocket errors are sent as JSON frames with <code>type: 'error'</code>. The connection is not automatically closed after an error (except when session initialization fails).</p>
+  <pre><code>{ "type": "error", "message": "Human-readable error description" }</code></pre>
+
+  <h3>REST API Errors</h3>
+  <p>All REST error responses use the same shape with standard HTTP status codes:</p>
+  <pre><code>{ "error": "Human-readable error description" }</code></pre>
+  <table>
+    <tr><th>Status</th><th>Meaning</th></tr>
+    <tr><td>400</td><td>Bad request — validation failure</td></tr>
+    <tr><td>401</td><td>Unauthorized — no valid session</td></tr>
+    <tr><td>404</td><td>Resource not found or not owned by current user</td></tr>
+    <tr><td>500</td><td>Internal server error</td></tr>
+  </table>
+
+  <!-- Rate Limits -->
+  <h2 class="anchor" id="rate-limits">Rate Limits</h2>
+  <div class="callout note">
+    <span class="callout-icon">&#9432;</span>
+    <div>Rate limiting is <strong>not implemented for MVP</strong> (tracked in GitHub issue <a href="#">#17</a>). The <code>/api/interview/start</code> endpoint is planned to be rate-limited to 10 requests/minute per user post-MVP.</div>
+  </div>
+
+  <!-- Constants -->
+  <h2 class="anchor" id="constants">Relay Server Constants</h2>
+  <table class="constants-table">
+    <tr><th>Constant</th><th>Value</th><th>Description</th></tr>
+    <tr><td>MAX_INTERVIEW_DURATION_SECONDS</td><td>900</td><td>Auto-ends session at 15 minutes</td></tr>
+    <tr><td>INTERVIEW_WARNING_SECONDS</td><td>720</td><td>Sends warning at 12 minutes</td></tr>
+    <tr><td>SILENCE_TIMEOUT_SECONDS</td><td>35</td><td>Auto-ends after 35s of silence</td></tr>
+    <tr><td>RMS_SILENCE_THRESHOLD</td><td>0.05</td><td>RMS below this is treated as silence</td></tr>
+    <tr><td>TRANSCRIPT_CHECKPOINT_INTERVAL_MS</td><td>30,000</td><td>Transcript saved to Supabase every 30s</td></tr>
+    <tr><td>GEMINI_CONNECT_TIMEOUT_MS</td><td>20,000</td><td>Timeout for Gemini Live API handshake</td></tr>
+    <tr><td>AUDIO_DRAIN_BUFFER_MS</td><td>3,000</td><td>Grace period after AI audio before silence detection resumes</td></tr>
+  </table>
+
+  <h3>Gemini Models</h3>
+  <table>
+    <tr><th>Purpose</th><th>Model</th></tr>
+    <tr><td>Voice interview (Live API)</td><td><code>gemini-2.5-flash-native-audio-latest</code></td></tr>
+    <tr><td>Transcript analysis</td><td><code>gemini-3.1-pro-preview</code></td></tr>
+  </table>
+  <p style="margin-top:12px; color: var(--text-muted)">The Live API session uses voice <strong>Aoede</strong> with both input and output audio transcription enabled.</p>
+
+</main>
+
+</body>
+</html>

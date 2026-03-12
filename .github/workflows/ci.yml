@@ -35,8 +35,16 @@ jobs:
       - name: Typecheck server
         run: cd server && pnpm typecheck
 
-      - name: Test
-        run: pnpm test
+      - name: Test with coverage
+        run: pnpm test:coverage --coverageReporters=lcov --coverageReporters=text --coverageReporters=html
+
+      - name: Upload coverage report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: coverage-report
+          path: coverage/
+          retention-days: 30
 
       - name: Build frontend
         env:
@@ -46,3 +54,11 @@ jobs:
 
       - name: Build server
         run: cd server && pnpm build
+
+      - name: Security audit (frontend)
+        run: pnpm audit --audit-level=moderate
+        continue-on-error: true
+
+      - name: Security audit (server)
+        run: cd server && pnpm audit --audit-level=moderate
+        continue-on-error: true

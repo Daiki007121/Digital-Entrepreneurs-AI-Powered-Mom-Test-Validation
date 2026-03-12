@@ -1,0 +1,956 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Eval Dashboard — Digital Entrepreneurs</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  :root {
+    --bg: #0f0f13;
+    --surface: #16161d;
+    --surface2: #1e1e2a;
+    --border: #2a2a3a;
+    --text: #e2e8f0;
+    --text-muted: #64748b;
+    --pass: #10b981;
+    --fail: #ef4444;
+    --warn: #f59e0b;
+    --accent: #6366f1;
+    --radius: 10px;
+  }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+    min-height: 100vh;
+    padding: 24px;
+  }
+  .page-header {
+    max-width: 1100px;
+    margin: 0 auto 32px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 16px;
+  }
+  .page-title {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .logo {
+    width: 40px; height: 40px;
+    background: linear-gradient(135deg, #6366f1, #8b5cf6);
+    border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px;
+  }
+  h1 { font-size: 22px; font-weight: 700; }
+  h1 span { color: var(--text-muted); font-weight: 400; font-size: 14px; display: block; margin-top: 2px; }
+  .run-info { color: var(--text-muted); font-size: 13px; text-align: right; }
+  .run-info strong { color: var(--text); }
+  .stats-grid {
+    max-width: 1100px;
+    margin: 0 auto 28px;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 14px;
+  }
+  .stat-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 18px 20px;
+  }
+  .stat-label { font-size: 11px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--text-muted); margin-bottom: 8px; }
+  .stat-value { font-size: 32px; font-weight: 700; line-height: 1; }
+  .stat-value.green { color: var(--pass); }
+  .stat-value.red { color: var(--fail); }
+  .stat-value.blue { color: #60a5fa; }
+  .stat-value.purple { color: #a78bfa; }
+  .stat-sub { font-size: 12px; color: var(--text-muted); margin-top: 6px; }
+  .coverage-grid {
+    max-width: 1100px;
+    margin: 0 auto 28px;
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 14px;
+  }
+  .cov-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 16px 18px;
+  }
+  .cov-label { font-size: 11px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--text-muted); margin-bottom: 10px; }
+  .cov-bar-wrap { background: var(--border); border-radius: 100px; height: 8px; margin-bottom: 8px; overflow: hidden; }
+  .cov-bar { height: 100%; border-radius: 100px; background: linear-gradient(90deg, #10b981, #34d399); }
+  .cov-pct { font-size: 24px; font-weight: 700; color: var(--pass); }
+  .cov-threshold { font-size: 11px; color: var(--text-muted); }
+  .controls {
+    max-width: 1100px;
+    margin: 0 auto 20px;
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+  .filter-btn {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 7px 14px;
+    color: var(--text-muted);
+    font-size: 13px;
+    cursor: pointer;
+    transition: all .15s;
+  }
+  .filter-btn:hover { border-color: var(--accent); color: var(--text); }
+  .filter-btn.active { background: var(--accent); border-color: var(--accent); color: white; }
+  .expand-all {
+    margin-left: auto;
+    background: transparent;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 7px 14px;
+    color: var(--text-muted);
+    font-size: 13px;
+    cursor: pointer;
+    transition: all .15s;
+  }
+  .expand-all:hover { color: var(--text); border-color: var(--accent); }
+  .suites-container { max-width: 1100px; margin: 0 auto; display: flex; flex-direction: column; gap: 8px; }
+  .suite-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+    transition: border-color .15s;
+  }
+  .suite-card:hover { border-color: #3a3a4a; }
+  .suite-card.suite-pass { border-left: 3px solid var(--pass); }
+  .suite-card.suite-fail { border-left: 3px solid var(--fail); }
+  .suite-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 14px 18px; cursor: pointer; user-select: none;
+  }
+  .suite-header:hover { background: rgba(255,255,255,.02); }
+  .suite-left { display: flex; align-items: center; gap: 12px; min-width: 0; }
+  .suite-icon { font-size: 16px; }
+  .suite-icon.suite-pass { color: var(--pass); }
+  .suite-icon.suite-fail { color: var(--fail); }
+  .suite-info { display: flex; align-items: center; gap: 10px; min-width: 0; flex-wrap: wrap; }
+  .category-tag {
+    font-size: 11px; font-weight: 600; padding: 2px 8px;
+    border-radius: 4px; white-space: nowrap; flex-shrink: 0;
+    letter-spacing: .04em; text-transform: uppercase;
+  }
+  .suite-name { font-size: 14px; font-weight: 500; font-family: 'SF Mono', 'Fira Code', monospace; word-break: break-all; }
+  .suite-right { display: flex; align-items: center; gap: 14px; flex-shrink: 0; }
+  .suite-count { font-size: 13px; color: var(--text-muted); font-family: monospace; }
+  .chevron { color: var(--text-muted); font-size: 12px; transition: transform .2s; }
+  .chevron.open { transform: rotate(180deg); }
+  .suite-body { border-top: 1px solid var(--border); background: var(--surface2); }
+  .test-table { width: 100%; border-collapse: collapse; }
+  .test-row { border-bottom: 1px solid rgba(255,255,255,.03); }
+  .test-row:last-child { border-bottom: none; }
+  .test-row:hover { background: rgba(255,255,255,.02); }
+  .status-cell { width: 44px; padding: 10px 0 10px 18px; }
+  .status-icon { font-size: 14px; font-weight: 700; }
+  .status-icon.pass { color: var(--pass); }
+  .status-icon.fail { color: var(--fail); }
+  .test-name { padding: 10px 12px; font-size: 13px; color: var(--text); }
+  .test-dur { padding: 10px 18px 10px 0; font-size: 12px; color: var(--text-muted); text-align: right; white-space: nowrap; font-family: monospace; }
+  .badge-row { display: flex; gap: 8px; flex-wrap: wrap; max-width: 1100px; margin: 0 auto 28px; }
+  .badge {
+    display: inline-flex; align-items: center; gap: 6px;
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 6px; padding: 6px 12px; font-size: 12px; font-weight: 500;
+  }
+  .badge-dot { width: 8px; height: 8px; border-radius: 50%; }
+  .badge-dot.green { background: var(--pass); }
+  .badge-dot.blue { background: #60a5fa; }
+  footer { max-width: 1100px; margin: 40px auto 0; text-align: center; color: var(--text-muted); font-size: 12px; padding-bottom: 24px; }
+  @media (max-width: 600px) {
+    .coverage-grid { grid-template-columns: repeat(2, 1fr); }
+    .stats-grid { grid-template-columns: repeat(2, 1fr); }
+  }
+</style>
+</head>
+<body>
+
+<header class="page-header">
+  <div class="page-title">
+    <div class="logo">🧪</div>
+    <div>
+      <h1>Eval Dashboard<span>Digital Entrepreneurs — AI-Powered Mom Test Validation</span></h1>
+    </div>
+  </div>
+  <div class="run-info">
+    <strong>Run: 2026-03-11</strong><br>
+    Branch: fix/interview-lantency
+  </div>
+</header>
+
+<div class="badge-row">
+  <div class="badge"><span class="badge-dot green"></span>243/243 Tests Passing</div>
+  <div class="badge"><span class="badge-dot green"></span>22/22 Suites Passing</div>
+  <div class="badge"><span class="badge-dot blue"></span>Coverage: 96.99% Statements</div>
+  <div class="badge"><span class="badge-dot green"></span>All Thresholds Met (≥80%)</div>
+</div>
+
+<div class="stats-grid">
+  <div class="stat-card">
+    <div class="stat-label">Tests Passed</div>
+    <div class="stat-value green">243</div>
+    <div class="stat-sub">of 243 total</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-label">Tests Failed</div>
+    <div class="stat-value red">0</div>
+    <div class="stat-sub">zero failures</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-label">Test Suites</div>
+    <div class="stat-value blue">22</div>
+    <div class="stat-sub">all passing</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-label">Runtime</div>
+    <div class="stat-value purple">7.6s</div>
+    <div class="stat-sub">wall time</div>
+  </div>
+</div>
+
+<div class="coverage-grid">
+  <div class="cov-card">
+    <div class="cov-label">Statements</div>
+    <div class="cov-bar-wrap"><div class="cov-bar" style="width:96.99%"></div></div>
+    <div class="cov-pct">96.99%</div>
+    <div class="cov-threshold">threshold: 80%</div>
+  </div>
+  <div class="cov-card">
+    <div class="cov-label">Branches</div>
+    <div class="cov-bar-wrap"><div class="cov-bar" style="width:85.4%"></div></div>
+    <div class="cov-pct">85.40%</div>
+    <div class="cov-threshold">threshold: 80%</div>
+  </div>
+  <div class="cov-card">
+    <div class="cov-label">Functions</div>
+    <div class="cov-bar-wrap"><div class="cov-bar" style="width:98.66%"></div></div>
+    <div class="cov-pct">98.66%</div>
+    <div class="cov-threshold">threshold: 80%</div>
+  </div>
+  <div class="cov-card">
+    <div class="cov-label">Lines</div>
+    <div class="cov-bar-wrap"><div class="cov-bar" style="width:97.7%"></div></div>
+    <div class="cov-pct">97.70%</div>
+    <div class="cov-threshold">threshold: 80%</div>
+  </div>
+</div>
+
+<div class="controls">
+  <button class="filter-btn active" onclick="filterSuites('all', this)">All (22)</button>
+  <button class="filter-btn" onclick="filterSuites('component', this)">Components (5)</button>
+  <button class="filter-btn" onclick="filterSuites('lib', this)">Lib (8)</button>
+  <button class="filter-btn" onclick="filterSuites('store', this)">Store (1)</button>
+  <button class="filter-btn" onclick="filterSuites('server', this)">Server (7)</button>
+  <button class="expand-all" onclick="expandAll()">Expand All</button>
+</div>
+
+<div class="suites-container" id="suitesContainer">
+  <div class="suite-card suite-pass" data-category="component">
+    <div class="suite-header" onclick="toggleSuite(this)">
+      <div class="suite-left">
+        <span class="suite-icon suite-pass">✓</span>
+        <div class="suite-info">
+          <span class="category-tag" style="background:#7c3aed22;color:#7c3aed;border:1px solid #7c3aed44">Component</span>
+          <span class="suite-name">components/dashboard-viewx</span>
+        </div>
+      </div>
+      <div class="suite-right">
+        <span class="suite-count">5/5</span>
+        <span class="chevron">▼</span>
+      </div>
+    </div>
+    <div class="suite-body" style="display:none">
+      <table class="test-table"><tbody>
+        <tr class="test-row pass"><td class="status-cell"><span class="status-icon pass">✓</span></td><td class="test-name">DashboardView renders empty state when no interviews</td><td class="test-dur">14ms</td></tr>
+<tr class="test-row pass"><td class="status-cell"><span class="status-icon pass">✓</span></td><td class="test-name">DashboardView renders New Interview button in empty state</td><td class="test-dur">32ms</td></tr>
+<tr class="test-row pass"><td class="status-cell"><span class="status-icon pass">✓</span></td><td class="test-name">DashboardView renders interview cards when interviews exist</td><td class="test-dur">22ms</td></tr>
+<tr class="test-row pass"><td class="status-cell"><span class="status-icon pass">✓</span></td><td class="test-name">DashboardView renders FAB when interviews exist</td><td class="test-dur">8ms</td></tr>
+<tr class="test-row pass"><td class="status-cell"><span class="status-icon pass">✓</span></td><td class="test-name">DashboardView renders status badges correctly</td><td class="test-dur">17ms</td></tr>
+      </tbody></table>
+    </div>
+  </div>
+  <div class="suite-card suite-pass" data-category="component">
+    <div class="suite-header" onclick="toggleSuite(this)">
+      <div class="suite-left">
+        <span class="suite-icon suite-pass">✓</span>
+        <div class="suite-info">
+          <span class="category-tag" style="background:#7c3aed22;color:#7c3aed;border:1px solid #7c3aed44">Component</span>
+          <span class="suite-name">components/interview-cardx</span>
+        </div>
+      </div>
+      <div class="suite-right">
+        <span class="suite-count">11/11</span>
+        <span class="chevron">▼</span>
+      </div>
+    </div>
+    <div class="suite-body" style="display:none">
+      <table class="test-table"><tbody>
+        <tr class="test-row pass"><td class="status-cell"><span class="status-icon pass">✓</span></td><td class="test-name">InterviewCard renders participant name and topic</td><td class="test-dur">29ms</td></tr>
+<tr class="test-row pass"><td class="status-cell"><span class="status-icon pass">✓</span></td><td class="test-name">InterviewCard renders Active badge for active status</td><td class="test-dur">4ms</td></tr>
+<tr class="test-row pass"><td class="status-cell"><span class="status-icon pass">✓</span></td><td class="test-name">InterviewCard renders Analyzing badge for completed status</td><td class="test-dur">2ms</td></tr>
+<tr class="test-row pass"><td class="status-cell"><span class="status-icon pass">✓</span></td><td class="test-name">InterviewCard renders Analyzed badge for analyzed status</td><td class="test-dur">1ms</td></tr>
+<tr class="test-row pass"><td class="status-cell"><span class="status-icon pass">✓</span></td><td class="test-name">InterviewCard renders formatted date</td><td class="test-dur">7ms</td></tr>
+<tr class="test-row pass"><td class="status-cell"><span class="status-icon pass">✓</span></td><td class="test-name">InterviewCard renders duration when provided</td><td class="test-dur">2ms</td></tr>
+<tr class="test-row pass"><td class="status-cell"><span class="status-icon pass">✓</span></td><td class="test-name">InterviewCard does not render duration when null</td><td class="test-dur">1ms</td></tr>
+<tr class="test-row pass"><td class="status-cell"><span class="status-icon pass">✓</span></td><td class="test-name">InterviewCard has correct aria-label</td><td class="test-dur">34ms</td></tr>
+<tr class="test-row pass"><td class="status-cell"><span class="status-icon pass">✓</span></td><td class="test-name">InterviewCard navigates to interview page on click for active interviews</td><td class="test-dur">6ms</td></tr>
+<tr class="test-row pass"><td class="status-cell"><span class="status-icon pass">✓</span></td><td class="test-name">InterviewCard navigates to report page on click for analyzed interviews</td><td class="test-dur">3ms</td></tr>
+<tr class="test-row pass"><td class="status-cell"><span class="status-icon pass">✓</span></td><td class="test-name">InterviewCard renders delete button</td><td class="test-dur">2ms</td></tr>
+      </tbody></table>
+    </div>
+  </div>
+  <div class="suite-card suite-pass" data-category="component">
+    <div class="suite-header" onclick="toggleSuite(this)">
+      <div class="suite-left">
+        <span class="suite-icon suite-pass">✓</span>
+        <div class="suite-info">
+          <span class="category-tag" style="background:#7c3aed22;color:#7c3aed;border:1px solid #7c3aed44">Component</span>
+          <span class="suite-name">components/next-steps-listx</span>
+        </div>
+      </div>
+      <div class="suite-right">
+        <span class="suite-count">3/3</span>
+        <span class="chevron">▼</span>
+      </div>
+    </div>
+    <div class="suite-body" style="display:none">
+      <table class="test-table"><tbody>
+        <tr class="test-row pass"><td class="status-cell"><span class="status-icon pass">✓</span></td><td class="test-name">NextStepsList renders all steps with numbers</td><td class="test-dur">17ms</td></tr>
+<tr class="test-row pass"><td class="status-cell"><span class="status-icon pass">✓</span></td><td class="test-name">NextStepsList returns null for empty steps</td><td class="test-dur">1ms</td></tr>
+<tr class="test-row pass"><td class="status-cell"><span class="status-icon pass">✓</span></td><td class="test-name">NextStepsList has accessible list role</td><td class="test-dur">38ms</td></tr>
+      </tbody></table>
+    </div>
+  </div>
+  <div class="suite-card suite-pass" data-category="component">
+    <div class="suite-header" onclick="toggleSuite(this)">
+      <div class="suite-left">
+        <span class="suite-icon suite-pass">✓</span>
+        <div class="suite-info">
+          <span class="category-tag" style="background:#7c3aed22;color:#7c3aed;border:1px solid #7c3aed44">Component</span>
+          <span class="suite-name">components/pain-point-cardx</span>
+        </div>
+      </div>
+      <div class="suite-right">
+        <span class="suite-count">7/7</span>
+        <span class="chevron">▼</span>
+      </div>
+    </div>
+    <div class="suite-body" style="display:none">
+      <table class="test-table"><tbody>
+        <tr class="test-row pass"><td class="status-cell"><span class="status-icon pass">✓</span></td><td class="test-name">PainPointCard renders pain point title</td><td class="test-dur">19ms</td></tr>
+<tr class="test-row pass"><td class="status-cell"><span class="status-icon pass">✓</span></td><td class="test-name">PainPointCard renders severity badge</td><td class="test-dur">2ms</td></tr>
+<tr class="test-row pass"><td class="status-cell"><span class="status-icon pass">✓</span></td><td class="test-name">PainPointCard renders index number</td><td class="test-dur">2ms</td></tr>
+<tr class="test-row pass"><td class="status-cell"><span class="status-icon pass">✓</span></td><td class="test-name">PainPointCard does not show evidence by default</td><td class="test-dur">1ms</td></tr>
+<tr class="test-row pass"><td class="status-cell"><span class="status-icon pass">✓</span></td><td class="test-name">PainPointCard shows evidence when expanded</td><td class="test-dur">49ms</td></tr>
+<tr class="test-row pass"><td class="status-cell"><span class="status-icon pass">✓</span></td><td class="test-name">PainPointCard hides evidence when collapsed again</td><td class="test-dur">8ms</td></tr>
+<tr class="test-row pass"><td class="status-cell"><span class="status-icon pass">✓</span></td><td class="test-name">PainPointCard has correct aria-expanded attribute</td><td class="test-dur">2ms</td></tr>
+      </tbody></table>
+    </div>
+  </div>
+  <div class="suite-card suite-pass" data-category="component">
+    <div class="suite-header" onclick="toggleSuite(this)">
+      <div class="suite-left">
+        <span class="suite-icon suite-pass">✓</span>
+        <div class="suite-info">
+          <span class="category-tag" style="background:#7c3aed22;color:#7c3aed;border:1px solid #7c3aed44">Component</span>
+          <span class="suite-name">components/validation-scorex</span>
+        </div>
+      </div>
+      <div class="suite-right">
+        <span class="suite-count">5/5</span>
+        <span class="chevron">▼</span>
+      </div>
+    </div>
+    <div class="suite-body" style="display:none">
+      <table class="test-table"><tbody>
+        <tr class="test-row pass"><td class="status-cell"><span class="status-icon pass">✓</span></td><td class="test-name">ValidationScore renders score value</td><td class="test-dur">18ms</td></tr>
+<tr class="test-row pass"><td class="status-cell"><span class="status-icon pass">✓</span></td><td class="test-name">ValidationScore shows Strong Validation for score &gt;= 70</td><td class="test-dur">2ms</td></tr>
+<tr class="test-row pass"><td class="status-cell"><span class="status-icon pass">✓</span></td><td class="test-name">ValidationScore shows Moderate Validation for score 40-69</td><td class="test-dur">2ms</td></tr>
+<tr class="test-row pass"><td class="status-cell"><span class="status-icon pass">✓</span></td><td class="test-name">ValidationScore shows Weak Validation for score &lt; 40</td><td class="test-dur">1ms</td></tr>
+<tr class="test-row pass"><td class="status-cell"><span class="status-icon pass">✓</span></td><td class="test-name">ValidationScore has correct aria-label</td><td class="test-dur">22ms</td></tr>
+      </tbody></table>
+    </div>
+  </div>
+  <div class="suite-card suite-pass" data-category="lib">
+    <div class="suite-header" onclick="toggleSuite(this)">
+      <div class="suite-left">
+        <span class="suite-icon suite-pass">✓</span>
+        <div class="suite-info">
+          <span class="category-tag" style="background:#05966922;color:#059669;border:1px solid #05966944">Lib</span>
+          <span class="suite-name">lib/auth</span>
+        </div>
+      </div>
+      <div class="suite-right">
+        <span class="suite-count">4/4</span>
+        <span class="chevron">▼</span>
+      </div>
+    </div>
+    <div class="suite-body" style="display:none">
+      <table class="test-table"><tbody>
+        <tr class="test-row pass"><td class="status-cell"><span class="status-icon pass">✓</span></td><td class="test-name">getAuthUser returns user when authenticated</td><td class="test-dur">2ms</td></tr>
+<tr class="test-row pass"><td class="status-cell"><span class="status-icon pass">✓</span></td><td class="test-name">getAuthUser throws Unauthorized when user is null</td><td class="test-dur">3ms</td></tr>
+<tr class="test-row pass"><td class="status-cell"><span class="status-icon pass">✓</span></td><td class="test-name">getAuthUser throws Unauthorized when error is returned</td><td class="test-dur">0ms</td></tr>
+<tr class="test-row pass"><td class="status-cell"><span class="status-icon pass">✓</span></td><td class="test-name">getAuthUser calls getUser on the supabase auth client</td><td class="test-dur">0ms</td></tr>
+      </tbody></table>
+    </div>
+  </div>
+  <div class="suite-card suite-pass" data-category="lib">
+    <div class="suite-header" onclick="toggleSuite(this)">
+      <div class="suite-left">
+        <span class="suite-icon suite-pass">✓</span>
+        <div class="suite-info">
+          <span class="category-tag" style="background:#05966922;color:#059669;border:1px solid #05966944">Lib</span>
+          <span class="suite-name">lib/gemini</span>
+        </div>
+      </div>
+      <div class="suite-right">
+        <span class="suite-count">10/10</span>
+        <span class="chevron">▼</span>
+      </div>
+    </div>
+    <div class="suite-body" style="display:none">
+      <table class="test-table"><tbody>
+        <tr class="test-row pass"><td class="status-cell"><span class="status-icon pass">✓</span></td><td class="test-name">callGeminiPro returns parsed JSON from Gemini response</td><td class="test-dur">2ms</td></tr>
+<tr class="test-row pass"><td class="status-cell"><span class="status-icon pass">✓</span></td><td class="test-name">callGeminiPro passes correct model and config to SDK</td><td class="test-dur">0ms</td></tr>
+<tr class="test-row pass"><td class="status-cell"><span class="status-icon pass">✓</span></td><td class="test-name">callGeminiPro retries on 429 error and succeeds</td><td class="test-dur">1003ms</td></tr>
+<tr class="test-row pass"><td class="status-cell"><span class="status-icon pass">✓</span></td><td class="test-name">callGeminiPro retries on 500 error and succeeds</td><td class="test-dur">1002ms</td></tr>
+<tr class="test-row pass"><td class="status-cell"><span class="status-icon pass">✓</span></td><td class="test-name">callGeminiPro throws after max retries exhausted</td><td class="test-dur">3016ms</td></tr>
+<tr class="test-row pass"><td class="status-cell"><span class="status-icon pass">✓</span></td><td class="test-name">callGeminiPro does not retry on non-retryable errors</td><td class="test-dur">1ms</td></tr>
+<tr class="test-row pass"><td class="status-cell"><span class="status-icon pass">✓</span></td><td class="test-name">callGeminiPro throws if response text is empty</td><td class="test-dur">1ms</td></tr>
+<tr class="test-row pass"><td class="status-cell"><span class="status-icon pass">✓</span></td><td class="test-name">callGeminiPro handles JSON wrapped in markdown code blocks</td><td class="test-dur">1ms</td></tr>
+<tr class="test-row pass"><td class="status-cell"><span class="status-icon pass">✓</span></td><td class="test-name">callGeminiPro throws when GOOGLE_AI_API_KEY is not set</td><td class="test-dur">1ms</td></tr>
+<tr class="test-row pass"><td class="status-cell"><span class="status-icon pass">✓</span></td><td class="test-name">callGeminiPro retries on 503 error and succeeds</td><td class="test-dur">1004ms</td></tr>
+      </tbody></table>
+    </div>
+  </div>
+  <div class="suite-card suite-pass" data-category="lib">
+    <div class="suite-header" onclick="toggleSuite(this)">
+      <div class="suite-left">
+        <span class="suite-icon suite-pass">✓</span>
+        <div class="suite-info">
+          <span class="category-tag" style="background:#05966922;color:#059669;border:1px solid #05966944">Lib</span>
+          <span class="suite-name">lib/logger</span>
+        </div>
+      </div>
+      <div class="suite-right">
+        <span class="suite-count">10/10</span>
+        <span class="chevron">▼</span>
+      </div>
+    </div>
+    <div class="suite-body" style="display:none">
+      <table class="test-table"><tbody>
+        <tr class="test-row pass"><td class="status-cell"><span class="status-icon pass">✓</span></td><td class="test-name">logger in non-production (development) calls console.debug for debug()</td><td class="test-dur">28ms</td></tr>
+<tr class="test-row pass"><td class="status-cell"><span class="status-icon pass">✓</span></td><td class="test-name">logger in non-production (development) calls console.info for info()</td><td class="test-dur">1ms</td></tr>
+<tr class="test-row pass"><td class="status-cell"><span class="status-icon pass">✓</span></td><td class="test-name">logger in non-production (development) always calls console.warn for warn()</td><td class="test-dur">1ms</td></tr>
+<tr class="test-row pass"><td class="status-cell"><span class="status-icon pass">✓</span></td><td class="test-name">logger in non-production (development) always calls console.error for error()</td><td class="test-dur">0ms</td></tr>
+<tr class="test-row pass"><td class="status-cell"><span class="status-icon pass">✓</span></td><td class="test-name">logger in non-production (development) passes multiple arguments to debug()</td><td class="test-dur">1ms</td></tr>
+<tr class="test-row pass"><td class="status-cell"><span class="status-icon pass">✓</span></td><td class="test-name">logger in non-production (development) passes multiple arguments to error()</td><td class="test-dur">0ms</td></tr>
+<tr class="test-row pass"><td class="status-cell"><span class="status-icon pass">✓</span></td><td class="test-name">logger in production suppresses console.debug in production</td><td class="test-dur">1ms</td></tr>
+<tr class="test-row pass"><td class="status-cell"><span class="status-icon pass">✓</span></td><td class="test-name">logger in production suppresses console.info in production</td><td class="test-dur">1ms</td></tr>
+<tr class="test-row pass"><td class="status-cell"><span class="status-icon pass">✓</span></td><td class="test-name">logger in production still calls console.warn in production</td><td class="test-dur">0ms</td></tr>
+<tr class="test-row pass"><td class="status-cell"><span class="status-icon pass">✓</span></td><td class="test-name">logger in production still calls console.error in production</td><td class="test-dur">1ms</td></tr>
+      </tbody></table>
+    </div>
+  </div>
+  <div class="suite-card suite-pass" data-category="lib">
+    <div class="suite-header" onclick="toggleSuite(this)">
+      <div class="suite-left">
+        <span class="suite-icon suite-pass">✓</span>
+        <div class="suite-info">
+          <span class="category-tag" style="background:#05966922;color:#059669;border:1px solid #05966944">Lib</span>
+          <span class="suite-name">lib/mom-test</span>
+        </div>
+      </div>
+      <div class="suite-right">
+        <span class="suite-count">26/26</span>
+        <span class="chevron">▼</span>
+      </div>
+    </div>
+    <div class="suite-body" style="display:none">
+      <table class="test-table"><tbody>
+        <tr class="test-row pass"><td class="status-cell"><span class="status-icon pass">✓</span></td><td class="test-name">buildInterviewPrompt includes the topic in the output</td><td class="test-dur">2ms</td></tr>
+<tr class="test-row pass"><td class="status-cell"><span class="status-icon pass">✓</span></td><td class="test-name">buildInterviewPrompt includes the target user in the output</td><td class="test-dur">1ms</td></tr>
+<tr class="test-row pass"><td class="status-cell"><span class="status-icon pass">✓</span></td><td class="test-name">buildInterviewPrompt includes Mom Test rules</td><td class="test-dur">0ms</td></tr>
+<tr class="test-row pass"><td class="status-cell"><span class="status-icon pass">✓</span></td><td class="test-name">buildInterviewPrompt does not contain raw placeholders</td><td class="test-dur">1ms</td></tr>
+<tr class="test-row pass"><td class="status-cell"><span class="status-icon pass">✓</span></td><td class="test-name">buildAnalysisPrompt includes the business idea</td><td class="test-dur">0ms</td></tr>
+<tr class="test-row pass"><td class="status-cell"><span class="status-icon pass">✓</span></td><td class="test-name">buildAnalysisPrompt includes the target user</td><td class="test-dur">0ms</td></tr>
+<tr class="test-row pass"><td class="status-cell"><span class="status-icon pass">✓</span></td><td class="test-name">buildAnalysisPrompt includes transcript content</td><td class="test-dur">0ms</td></tr>
+<tr class="test-row pass"><td class="status-cell"><span class="status-icon pass">✓</span></td><td class="test-name">buildAnalysisPrompt returns an object with systemPrompt and userContent</td><td class="test-dur">0ms</td></tr>
+<tr class="test-row pass"><td class="status-cell"><span class="status-icon pass">✓</span></td><td class="test-name">detectLeadingQuestion detects leading question: "Would you use a tool that does this?"</td><td class="test-dur">1ms</td></tr>
+<tr class="test-row pass"><td class="status-cell"><span class="status-icon pass">✓</span></td><td class="test-name">detectLeadingQuestion detects leading question: "Do you think this is a good idea?"</td><td class="test-dur">0ms</td></tr>
+<tr class="test-row pass"><td class="status-cell"><span class="status-icon pass">✓</span></td><td class="test-name">detectLeadingQuestion detects leading question: "Would you pay for something like this?"</td><td class="test-dur">0ms</td></tr>
+<tr class="test-row pass"><td class="status-cell"><span class="status-icon pass">✓</span></td><td class="test-name">detectLeadingQuestion detects leading question: "Don't you find scheduling frustrating?"</td><td class="test-dur">0ms</td></tr>
+<tr class="test-row pass"><td class="status-cell"><span class="status-icon pass">✓</span></td><td class="test-name">detectLeadingQuestion detects leading question: "Would you be interested in a solution that automates this?"</td><td class="test-dur">1ms</td></tr>
+<tr class="test-row pass"><td class="status-cell"><span class="status-icon pass">✓</span></td><td class="test-name">detectLeadingQuestion detects leading question: "Wouldn't it be great if you could save time on this?"</td><td class="test-dur">0ms</td></tr>
+<tr class="test-row pass"><td class="status-cell"><span class="status-icon pass">✓</span></td><td class="test-name">detectLeadingQuestion detects leading question: "Do you like the idea of automating your workflow?"</td><td class="test-dur">0ms</td></tr>
+<tr class="test-row pass"><td class="status-cell"><span class="status-icon pass">✓</span></td><td class="test-name">detectLeadingQuestion detects leading question: "Could you see yourself using this daily?"</td><td class="test-dur">0ms</td></tr>
+<tr class="test-row pass"><td class="status-cell"><span class="status-icon pass">✓</span></td><td class="test-name">detectLeadingQuestion detects leading question: "Will you switch to a new tool if it solves this?"</td><td class="test-dur">0ms</td></tr>
+<tr class="test-row pass"><td class="status-cell"><span class="status-icon pass">✓</span></td><td class="test-name">detectLeadingQuestion allows valid question: "Tell me about the last time you dealt with scheduling."</td><td class="test-dur">0ms</td></tr>
+<tr class="test-row pass"><td class="status-cell"><span class="status-icon pass">✓</span></td><td class="test-name">detectLeadingQuestion allows valid question: "How do you currently handle this problem?"</td><td class="test-dur">0ms</td></tr>
+<tr class="test-row pass"><td class="status-cell"><span class="status-icon pass">✓</span></td><td class="test-name">detectLeadingQuestion allows valid question: "What happened when you tried to solve this?"</td><td class="test-dur">0ms</td></tr>
+<tr class="test-row pass"><td class="status-cell"><span class="status-icon pass">✓</span></td><td class="test-name">detectLeadingQuestion allows valid question: "Can you walk me through your typical day?"</td><td class="test-dur">0ms</td></tr>
+<tr class="test-row pass"><td class="status-cell"><span class="status-icon pass">✓</span></td><td class="test-name">detectLeadingQuestion allows valid question: "What tools are you currently using?"</td><td class="test-dur">0ms</td></tr>
+<tr class="test-row pass"><td class="status-cell"><span class="status-icon pass">✓</span></td><td class="test-name">detectLeadingQuestion allows valid question: "How often does this come up?"</td><td class="test-dur">0ms</td></tr>
+<tr class="test-row pass"><td class="status-cell"><span class="status-icon pass">✓</span></td><td class="test-name">detectLeadingQuestion allows valid question: "What did you do about it?"</td><td class="test-dur">0ms</td></tr>
+<tr class="test-row pass"><td class="status-cell"><span class="status-icon pass">✓</span></td><td class="test-name">detectLeadingQuestion allows valid question: "Who else deals with this problem?"</td><td class="test-dur">0ms</td></tr>
+<tr class="test-row pass"><td class="status-cell"><span class="status-icon pass">✓</span></td><td class="test-name">detectLeadingQuestion handles empty string</td><td class="test-dur">4ms</td></tr>
+      </tbody></table>
+    </div>
+  </div>
+  <div class="suite-card suite-pass" data-category="lib">
+    <div class="suite-header" onclick="toggleSuite(this)">
+      <div class="suite-left">
+        <span class="suite-icon suite-pass">✓</span>
+        <div class="suite-info">
+          <span class="category-tag" style="background:#05966922;color:#059669;border:1px solid #05966944">Lib</span>
+          <span class="suite-name">lib/prompt-loader</span>
+        </div>
+      </div>
+      <div class="suite-right">
+        <span class="suite-count">9/9</span>
+        <span class="chevron">▼</span>
+      </div>
+    </div>
+    <div class="suite-body" style="display:none">
+      <table class="test-table"><tbody>
+        <tr class="test-row pass"><td class="status-cell"><span class="status-icon pass">✓</span></td><td class="test-name">replacePlaceholders replaces a single placeholder</td><td class="test-dur">0ms</td></tr>
+<tr class="test-row pass"><td class="status-cell"><span class="status-icon pass">✓</span></td><td class="test-name">replacePlaceholders replaces multiple different placeholders</td><td class="test-dur">0ms</td></tr>
+<tr class="test-row pass"><td class="status-cell"><span class="status-icon pass">✓</span></td><td class="test-name">replacePlaceholders replaces all occurrences of the same placeholder</td><td class="test-dur">0ms</td></tr>
+<tr class="test-row pass"><td class="status-cell"><span class="status-icon pass">✓</span></td><td class="test-name">replacePlaceholders leaves unknown placeholders untouched</td><td class="test-dur">0ms</td></tr>
+<tr class="test-row pass"><td class="status-cell"><span class="status-icon pass">✓</span></td><td class="test-name">replacePlaceholders handles empty variables object</td><td class="test-dur">0ms</td></tr>
+<tr class="test-row pass"><td class="status-cell"><span class="status-icon pass">✓</span></td><td class="test-name">replacePlaceholders handles template with no placeholders</td><td class="test-dur">0ms</td></tr>
+<tr class="test-row pass"><td class="status-cell"><span class="status-icon pass">✓</span></td><td class="test-name">loadPrompt loads momTestEnforcer.md and replaces placeholders</td><td class="test-dur">1ms</td></tr>
+<tr class="test-row pass"><td class="status-cell"><span class="status-icon pass">✓</span></td><td class="test-name">loadPrompt loads insightAnalyzer.md and replaces placeholders</td><td class="test-dur">0ms</td></tr>
+<tr class="test-row pass"><td class="status-cell"><span class="status-icon pass">✓</span></td><td class="test-name">loadPrompt throws for non-existent prompt file</td><td class="test-dur">3ms</td></tr>
+      </tbody></table>
+    </div>
+  </div>
+  <div class="suite-card suite-pass" data-category="store">
+    <div class="suite-header" onclick="toggleSuite(this)">
+      <div class="suite-left">
+        <span class="suite-icon suite-pass">✓</span>
+        <div class="suite-info">
+          <span class="category-tag" style="background:#0891b222;color:#0891b2;border:1px solid #0891b244">Store</span>
+          <span class="suite-name">lib/stores/interview-store</span>
+        </div>
+      </div>
+      <div class="suite-right">
+        <span class="suite-count">25/25</span>
+        <span class="chevron">▼</span>
+      </div>
+    </div>
+    <div class="suite-body" style="display:none">
+      <table class="test-table"><tbody>
+        <tr class="test-row pass"><td class="status-cell"><span class="status-icon pass">✓</span></td><td class="test-name">useInterviewStore initial state has null interviewId</td><td class="test-dur">4ms</td></tr>
+<tr class="test-row pass"><td class="status-cell"><span class="status-icon pass">✓</span></td><td class="test-name">useInterviewStore initial state has empty participantName</td><td class="test-dur">0ms</td></tr>
+<tr class="test-row pass"><td class="status-cell"><span class="status-icon pass">✓</span></td><td class="test-name">useInterviewStore initial state has empty topic</td><td class="test-dur">1ms</td></tr>
+<tr class="test-row pass"><td class="status-cell"><span class="status-icon pass">✓</span></td><td class="test-name">useInterviewStore initial state has empty targetUser</td><td class="test-dur">1ms</td></tr>
+<tr class="test-row pass"><td class="status-cell"><span class="status-icon pass">✓</span></td><td class="test-name">useInterviewStore initial state has empty transcript array</td><td class="test-dur">2ms</td></tr>
+<tr class="test-row pass"><td class="status-cell"><span class="status-icon pass">✓</span></td><td class="test-name">useInterviewStore initial state has elapsedSeconds of 0</td><td class="test-dur">0ms</td></tr>
+<tr class="test-row pass"><td class="status-cell"><span class="status-icon pass">✓</span></td><td class="test-name">useInterviewStore initial state has isRecording false</td><td class="test-dur">0ms</td></tr>
+<tr class="test-row pass"><td class="status-cell"><span class="status-icon pass">✓</span></td><td class="test-name">useInterviewStore initial state has aiState idle</td><td class="test-dur">0ms</td></tr>
+<tr class="test-row pass"><td class="status-cell"><span class="status-icon pass">✓</span></td><td class="test-name">useInterviewStore initial state has silenceSeconds of 0</td><td class="test-dur">1ms</td></tr>
+<tr class="test-row pass"><td class="status-cell"><span class="status-icon pass">✓</span></td><td class="test-name">useInterviewStore setSession sets the interviewId</td><td class="test-dur">0ms</td></tr>
+<tr class="test-row pass"><td class="status-cell"><span class="status-icon pass">✓</span></td><td class="test-name">useInterviewStore setSession sets the participantName</td><td class="test-dur">0ms</td></tr>
+<tr class="test-row pass"><td class="status-cell"><span class="status-icon pass">✓</span></td><td class="test-name">useInterviewStore setSession sets topic and targetUser</td><td class="test-dur">1ms</td></tr>
+<tr class="test-row pass"><td class="status-cell"><span class="status-icon pass">✓</span></td><td class="test-name">useInterviewStore addTranscriptEntry appends an entry to the transcript</td><td class="test-dur">0ms</td></tr>
+<tr class="test-row pass"><td class="status-cell"><span class="status-icon pass">✓</span></td><td class="test-name">useInterviewStore addTranscriptEntry appends multiple entries in order</td><td class="test-dur">0ms</td></tr>
+<tr class="test-row pass"><td class="status-cell"><span class="status-icon pass">✓</span></td><td class="test-name">useInterviewStore addTranscriptEntry does not mutate existing entries</td><td class="test-dur">0ms</td></tr>
+<tr class="test-row pass"><td class="status-cell"><span class="status-icon pass">✓</span></td><td class="test-name">useInterviewStore setElapsedSeconds updates elapsedSeconds</td><td class="test-dur">0ms</td></tr>
+<tr class="test-row pass"><td class="status-cell"><span class="status-icon pass">✓</span></td><td class="test-name">useInterviewStore setElapsedSeconds can update to 0</td><td class="test-dur">0ms</td></tr>
+<tr class="test-row pass"><td class="status-cell"><span class="status-icon pass">✓</span></td><td class="test-name">useInterviewStore setIsRecording sets isRecording to true</td><td class="test-dur">0ms</td></tr>
+<tr class="test-row pass"><td class="status-cell"><span class="status-icon pass">✓</span></td><td class="test-name">useInterviewStore setIsRecording sets isRecording to false</td><td class="test-dur">0ms</td></tr>
+<tr class="test-row pass"><td class="status-cell"><span class="status-icon pass">✓</span></td><td class="test-name">useInterviewStore setAiState sets aiState to listening</td><td class="test-dur">0ms</td></tr>
+<tr class="test-row pass"><td class="status-cell"><span class="status-icon pass">✓</span></td><td class="test-name">useInterviewStore setAiState sets aiState to speaking</td><td class="test-dur">0ms</td></tr>
+<tr class="test-row pass"><td class="status-cell"><span class="status-icon pass">✓</span></td><td class="test-name">useInterviewStore setAiState sets aiState to thinking</td><td class="test-dur">0ms</td></tr>
+<tr class="test-row pass"><td class="status-cell"><span class="status-icon pass">✓</span></td><td class="test-name">useInterviewStore setAiState sets aiState back to idle</td><td class="test-dur">1ms</td></tr>
+<tr class="test-row pass"><td class="status-cell"><span class="status-icon pass">✓</span></td><td class="test-name">useInterviewStore setSilenceSeconds updates silenceSeconds</td><td class="test-dur">0ms</td></tr>
+<tr class="test-row pass"><td class="status-cell"><span class="status-icon pass">✓</span></td><td class="test-name">useInterviewStore reset resets all state to initial values</td><td class="test-dur">0ms</td></tr>
+      </tbody></table>
+    </div>
+  </div>
+  <div class="suite-card suite-pass" data-category="lib">
+    <div class="suite-header" onclick="toggleSuite(this)">
+      <div class="suite-left">
+        <span class="suite-icon suite-pass">✓</span>
+        <div class="suite-info">
+          <span class="category-tag" style="background:#05966922;color:#059669;border:1px solid #05966944">Lib</span>
+          <span class="suite-name">lib/supabase-admin</span>
+        </div>
+      </div>
+      <div class="suite-right">
+        <span class="suite-count">5/5</span>
+        <span class="chevron">▼</span>
+      </div>
+    </div>
+    <div class="suite-body" style="display:none">
+      <table class="test-table"><tbody>
+        <tr class="test-row pass"><td class="status-cell"><span class="status-icon pass">✓</span></td><td class="test-name">createAdminClient creates client with SUPABASE_URL and service role key</td><td class="test-dur">7ms</td></tr>
+<tr class="test-row pass"><td class="status-cell"><span class="status-icon pass">✓</span></td><td class="test-name">createAdminClient falls back to NEXT_PUBLIC_SUPABASE_URL when SUPABASE_URL is not set</td><td class="test-dur">1ms</td></tr>
+<tr class="test-row pass"><td class="status-cell"><span class="status-icon pass">✓</span></td><td class="test-name">createAdminClient throws when SUPABASE_URL is missing</td><td class="test-dur">13ms</td></tr>
+<tr class="test-row pass"><td class="status-cell"><span class="status-icon pass">✓</span></td><td class="test-name">createAdminClient throws when SUPABASE_SERVICE_ROLE_KEY is missing</td><td class="test-dur">2ms</td></tr>
+<tr class="test-row pass"><td class="status-cell"><span class="status-icon pass">✓</span></td><td class="test-name">createAdminClient returns the client from createClient</td><td class="test-dur">1ms</td></tr>
+      </tbody></table>
+    </div>
+  </div>
+  <div class="suite-card suite-pass" data-category="lib">
+    <div class="suite-header" onclick="toggleSuite(this)">
+      <div class="suite-left">
+        <span class="suite-icon suite-pass">✓</span>
+        <div class="suite-info">
+          <span class="category-tag" style="background:#05966922;color:#059669;border:1px solid #05966944">Lib</span>
+          <span class="suite-name">lib/supabase-server</span>
+        </div>
+      </div>
+      <div class="suite-right">
+        <span class="suite-count">5/5</span>
+        <span class="chevron">▼</span>
+      </div>
+    </div>
+    <div class="suite-body" style="display:none">
+      <table class="test-table"><tbody>
+        <tr class="test-row pass"><td class="status-cell"><span class="status-icon pass">✓</span></td><td class="test-name">createServerSupabaseClient calls createServerClient with env vars</td><td class="test-dur">16ms</td></tr>
+<tr class="test-row pass"><td class="status-cell"><span class="status-icon pass">✓</span></td><td class="test-name">createServerSupabaseClient provides getAll cookie handler that reads from cookie store</td><td class="test-dur">1ms</td></tr>
+<tr class="test-row pass"><td class="status-cell"><span class="status-icon pass">✓</span></td><td class="test-name">createServerSupabaseClient provides setAll cookie handler that sets each cookie</td><td class="test-dur">1ms</td></tr>
+<tr class="test-row pass"><td class="status-cell"><span class="status-icon pass">✓</span></td><td class="test-name">createServerSupabaseClient setAll handler swallows errors (Server Component safe)</td><td class="test-dur">1ms</td></tr>
+<tr class="test-row pass"><td class="status-cell"><span class="status-icon pass">✓</span></td><td class="test-name">createServerSupabaseClient returns the client from createServerClient</td><td class="test-dur">0ms</td></tr>
+      </tbody></table>
+    </div>
+  </div>
+  <div class="suite-card suite-pass" data-category="lib">
+    <div class="suite-header" onclick="toggleSuite(this)">
+      <div class="suite-left">
+        <span class="suite-icon suite-pass">✓</span>
+        <div class="suite-info">
+          <span class="category-tag" style="background:#05966922;color:#059669;border:1px solid #05966944">Lib</span>
+          <span class="suite-name">lib/supabase</span>
+        </div>
+      </div>
+      <div class="suite-right">
+        <span class="suite-count">3/3</span>
+        <span class="chevron">▼</span>
+      </div>
+    </div>
+    <div class="suite-body" style="display:none">
+      <table class="test-table"><tbody>
+        <tr class="test-row pass"><td class="status-cell"><span class="status-icon pass">✓</span></td><td class="test-name">lib/supabase createClient calls createBrowserClient with the env vars</td><td class="test-dur">9ms</td></tr>
+<tr class="test-row pass"><td class="status-cell"><span class="status-icon pass">✓</span></td><td class="test-name">lib/supabase createClient returns the client from createBrowserClient</td><td class="test-dur">0ms</td></tr>
+<tr class="test-row pass"><td class="status-cell"><span class="status-icon pass">✓</span></td><td class="test-name">lib/supabase createClient creates a new client on each call</td><td class="test-dur">1ms</td></tr>
+      </tbody></table>
+    </div>
+  </div>
+  <div class="suite-card suite-pass" data-category="lib">
+    <div class="suite-header" onclick="toggleSuite(this)">
+      <div class="suite-left">
+        <span class="suite-icon suite-pass">✓</span>
+        <div class="suite-info">
+          <span class="category-tag" style="background:#05966922;color:#059669;border:1px solid #05966944">Lib</span>
+          <span class="suite-name">lib/validators</span>
+        </div>
+      </div>
+      <div class="suite-right">
+        <span class="suite-count">13/13</span>
+        <span class="chevron">▼</span>
+      </div>
+    </div>
+    <div class="suite-body" style="display:none">
+      <table class="test-table"><tbody>
+        <tr class="test-row pass"><td class="status-cell"><span class="status-icon pass">✓</span></td><td class="test-name">validateParticipantName accepts valid names</td><td class="test-dur">1ms</td></tr>
+<tr class="test-row pass"><td class="status-cell"><span class="status-icon pass">✓</span></td><td class="test-name">validateParticipantName rejects empty strings</td><td class="test-dur">0ms</td></tr>
+<tr class="test-row pass"><td class="status-cell"><span class="status-icon pass">✓</span></td><td class="test-name">validateParticipantName rejects whitespace-only strings</td><td class="test-dur">0ms</td></tr>
+<tr class="test-row pass"><td class="status-cell"><span class="status-icon pass">✓</span></td><td class="test-name">validateTopic accepts valid topics</td><td class="test-dur">1ms</td></tr>
+<tr class="test-row pass"><td class="status-cell"><span class="status-icon pass">✓</span></td><td class="test-name">validateTopic rejects empty topics</td><td class="test-dur">0ms</td></tr>
+<tr class="test-row pass"><td class="status-cell"><span class="status-icon pass">✓</span></td><td class="test-name">validateTopic rejects topics over 100 characters</td><td class="test-dur">1ms</td></tr>
+<tr class="test-row pass"><td class="status-cell"><span class="status-icon pass">✓</span></td><td class="test-name">validateTopic accepts topics at exactly 100 characters</td><td class="test-dur">0ms</td></tr>
+<tr class="test-row pass"><td class="status-cell"><span class="status-icon pass">✓</span></td><td class="test-name">validateInterviewStatus accepts valid statuses</td><td class="test-dur">2ms</td></tr>
+<tr class="test-row pass"><td class="status-cell"><span class="status-icon pass">✓</span></td><td class="test-name">validateInterviewStatus rejects invalid statuses</td><td class="test-dur">0ms</td></tr>
+<tr class="test-row pass"><td class="status-cell"><span class="status-icon pass">✓</span></td><td class="test-name">validateTranscriptEntry accepts valid entries</td><td class="test-dur">0ms</td></tr>
+<tr class="test-row pass"><td class="status-cell"><span class="status-icon pass">✓</span></td><td class="test-name">validateTranscriptEntry rejects entries with empty text</td><td class="test-dur">0ms</td></tr>
+<tr class="test-row pass"><td class="status-cell"><span class="status-icon pass">✓</span></td><td class="test-name">validateTranscriptEntry rejects entries with invalid speaker</td><td class="test-dur">0ms</td></tr>
+<tr class="test-row pass"><td class="status-cell"><span class="status-icon pass">✓</span></td><td class="test-name">validateTranscriptEntry rejects entries with negative timestamp</td><td class="test-dur">0ms</td></tr>
+      </tbody></table>
+    </div>
+  </div>
+  <div class="suite-card suite-pass" data-category="server">
+    <div class="suite-header" onclick="toggleSuite(this)">
+      <div class="suite-left">
+        <span class="suite-icon suite-pass">✓</span>
+        <div class="suite-info">
+          <span class="category-tag" style="background:#d9770622;color:#d97706;border:1px solid #d9770644">Server</span>
+          <span class="suite-name">server/analysis</span>
+        </div>
+      </div>
+      <div class="suite-right">
+        <span class="suite-count">11/11</span>
+        <span class="chevron">▼</span>
+      </div>
+    </div>
+    <div class="suite-body" style="display:none">
+      <table class="test-table"><tbody>
+        <tr class="test-row pass"><td class="status-cell"><span class="status-icon pass">✓</span></td><td class="test-name">analyzeTranscript reads interview, calls Gemini, writes insight, updates status</td><td class="test-dur">4ms</td></tr>
+<tr class="test-row pass"><td class="status-cell"><span class="status-icon pass">✓</span></td><td class="test-name">analyzeTranscript throws if interview not found</td><td class="test-dur">13ms</td></tr>
+<tr class="test-row pass"><td class="status-cell"><span class="status-icon pass">✓</span></td><td class="test-name">analyzeTranscript throws if transcript is empty</td><td class="test-dur">1ms</td></tr>
+<tr class="test-row pass"><td class="status-cell"><span class="status-icon pass">✓</span></td><td class="test-name">analyzeTranscript throws if transcript is null</td><td class="test-dur">0ms</td></tr>
+<tr class="test-row pass"><td class="status-cell"><span class="status-icon pass">✓</span></td><td class="test-name">analyzeTranscript throws if GOOGLE_AI_API_KEY is not set</td><td class="test-dur">0ms</td></tr>
+<tr class="test-row pass"><td class="status-cell"><span class="status-icon pass">✓</span></td><td class="test-name">analyzeTranscript throws if SUPABASE_URL is not set</td><td class="test-dur">3ms</td></tr>
+<tr class="test-row pass"><td class="status-cell"><span class="status-icon pass">✓</span></td><td class="test-name">analyzeTranscript retries on 429 and succeeds</td><td class="test-dur">1002ms</td></tr>
+<tr class="test-row pass"><td class="status-cell"><span class="status-icon pass">✓</span></td><td class="test-name">analyzeTranscript throws if Gemini insert to insights fails</td><td class="test-dur">1ms</td></tr>
+<tr class="test-row pass"><td class="status-cell"><span class="status-icon pass">✓</span></td><td class="test-name">analyzeTranscript throws if interview status update fails</td><td class="test-dur">1ms</td></tr>
+<tr class="test-row pass"><td class="status-cell"><span class="status-icon pass">✓</span></td><td class="test-name">analyzeTranscript throws after max retries exhausted on 500 error</td><td class="test-dur">3003ms</td></tr>
+<tr class="test-row pass"><td class="status-cell"><span class="status-icon pass">✓</span></td><td class="test-name">analyzeTranscript does not retry on non-retryable errors</td><td class="test-dur">1ms</td></tr>
+      </tbody></table>
+    </div>
+  </div>
+  <div class="suite-card suite-pass" data-category="server">
+    <div class="suite-header" onclick="toggleSuite(this)">
+      <div class="suite-left">
+        <span class="suite-icon suite-pass">✓</span>
+        <div class="suite-info">
+          <span class="category-tag" style="background:#d9770622;color:#d97706;border:1px solid #d9770644">Server</span>
+          <span class="suite-name">server/constants</span>
+        </div>
+      </div>
+      <div class="suite-right">
+        <span class="suite-count">9/9</span>
+        <span class="chevron">▼</span>
+      </div>
+    </div>
+    <div class="suite-body" style="display:none">
+      <table class="test-table"><tbody>
+        <tr class="test-row pass"><td class="status-cell"><span class="status-icon pass">✓</span></td><td class="test-name">server/constants MAX_INTERVIEW_DURATION_SECONDS is 900 (15 minutes)</td><td class="test-dur">1ms</td></tr>
+<tr class="test-row pass"><td class="status-cell"><span class="status-icon pass">✓</span></td><td class="test-name">server/constants INTERVIEW_WARNING_SECONDS is 720 (12 minutes)</td><td class="test-dur">1ms</td></tr>
+<tr class="test-row pass"><td class="status-cell"><span class="status-icon pass">✓</span></td><td class="test-name">server/constants SILENCE_TIMEOUT_SECONDS is 35</td><td class="test-dur">0ms</td></tr>
+<tr class="test-row pass"><td class="status-cell"><span class="status-icon pass">✓</span></td><td class="test-name">server/constants RMS_SILENCE_THRESHOLD is 0.05</td><td class="test-dur">0ms</td></tr>
+<tr class="test-row pass"><td class="status-cell"><span class="status-icon pass">✓</span></td><td class="test-name">server/constants TRANSCRIPT_CHECKPOINT_INTERVAL_MS is 30000</td><td class="test-dur">0ms</td></tr>
+<tr class="test-row pass"><td class="status-cell"><span class="status-icon pass">✓</span></td><td class="test-name">server/constants GEMINI_CONNECT_TIMEOUT_MS is 20000</td><td class="test-dur">0ms</td></tr>
+<tr class="test-row pass"><td class="status-cell"><span class="status-icon pass">✓</span></td><td class="test-name">server/constants AUDIO_DRAIN_BUFFER_MS is 3000</td><td class="test-dur">0ms</td></tr>
+<tr class="test-row pass"><td class="status-cell"><span class="status-icon pass">✓</span></td><td class="test-name">server/constants warning threshold is less than max duration</td><td class="test-dur">1ms</td></tr>
+<tr class="test-row pass"><td class="status-cell"><span class="status-icon pass">✓</span></td><td class="test-name">server/constants RMS_SILENCE_THRESHOLD is between 0 and 1</td><td class="test-dur">0ms</td></tr>
+      </tbody></table>
+    </div>
+  </div>
+  <div class="suite-card suite-pass" data-category="server">
+    <div class="suite-header" onclick="toggleSuite(this)">
+      <div class="suite-left">
+        <span class="suite-icon suite-pass">✓</span>
+        <div class="suite-info">
+          <span class="category-tag" style="background:#d9770622;color:#d97706;border:1px solid #d9770644">Server</span>
+          <span class="suite-name">server/prompt-bridge</span>
+        </div>
+      </div>
+      <div class="suite-right">
+        <span class="suite-count">7/7</span>
+        <span class="chevron">▼</span>
+      </div>
+    </div>
+    <div class="suite-body" style="display:none">
+      <table class="test-table"><tbody>
+        <tr class="test-row pass"><td class="status-cell"><span class="status-icon pass">✓</span></td><td class="test-name">Prompt placeholder replacement (pattern used in prompt-bridge) buildInterviewPrompt replaces TOPIC placeholder</td><td class="test-dur">4ms</td></tr>
+<tr class="test-row pass"><td class="status-cell"><span class="status-icon pass">✓</span></td><td class="test-name">Prompt placeholder replacement (pattern used in prompt-bridge) buildInterviewPrompt replaces TARGET_USER placeholder</td><td class="test-dur">0ms</td></tr>
+<tr class="test-row pass"><td class="status-cell"><span class="status-icon pass">✓</span></td><td class="test-name">Prompt placeholder replacement (pattern used in prompt-bridge) buildInterviewPrompt returns a non-empty string</td><td class="test-dur">1ms</td></tr>
+<tr class="test-row pass"><td class="status-cell"><span class="status-icon pass">✓</span></td><td class="test-name">Prompt placeholder replacement (pattern used in prompt-bridge) buildAnalysisPrompt includes business idea in system prompt</td><td class="test-dur">0ms</td></tr>
+<tr class="test-row pass"><td class="status-cell"><span class="status-icon pass">✓</span></td><td class="test-name">Prompt placeholder replacement (pattern used in prompt-bridge) buildAnalysisPrompt includes target user in system prompt</td><td class="test-dur">3ms</td></tr>
+<tr class="test-row pass"><td class="status-cell"><span class="status-icon pass">✓</span></td><td class="test-name">Prompt placeholder replacement (pattern used in prompt-bridge) buildAnalysisPrompt includes transcript in userContent</td><td class="test-dur">1ms</td></tr>
+<tr class="test-row pass"><td class="status-cell"><span class="status-icon pass">✓</span></td><td class="test-name">Prompt placeholder replacement (pattern used in prompt-bridge) buildAnalysisPrompt returns an object with systemPrompt and userContent strings</td><td class="test-dur">1ms</td></tr>
+      </tbody></table>
+    </div>
+  </div>
+  <div class="suite-card suite-pass" data-category="server">
+    <div class="suite-header" onclick="toggleSuite(this)">
+      <div class="suite-left">
+        <span class="suite-icon suite-pass">✓</span>
+        <div class="suite-info">
+          <span class="category-tag" style="background:#d9770622;color:#d97706;border:1px solid #d9770644">Server</span>
+          <span class="suite-name">server/session-logic</span>
+        </div>
+      </div>
+      <div class="suite-right">
+        <span class="suite-count">19/19</span>
+        <span class="chevron">▼</span>
+      </div>
+    </div>
+    <div class="suite-body" style="display:none">
+      <table class="test-table"><tbody>
+        <tr class="test-row pass"><td class="status-cell"><span class="status-icon pass">✓</span></td><td class="test-name">shouldWarn (server) returns true when elapsed reaches warning threshold (720s)</td><td class="test-dur">1ms</td></tr>
+<tr class="test-row pass"><td class="status-cell"><span class="status-icon pass">✓</span></td><td class="test-name">shouldWarn (server) returns true when elapsed exceeds warning threshold</td><td class="test-dur">1ms</td></tr>
+<tr class="test-row pass"><td class="status-cell"><span class="status-icon pass">✓</span></td><td class="test-name">shouldWarn (server) returns false when below warning threshold</td><td class="test-dur">0ms</td></tr>
+<tr class="test-row pass"><td class="status-cell"><span class="status-icon pass">✓</span></td><td class="test-name">shouldWarn (server) returns false when warning already sent</td><td class="test-dur">0ms</td></tr>
+<tr class="test-row pass"><td class="status-cell"><span class="status-icon pass">✓</span></td><td class="test-name">shouldWarn (server) returns false with multiple warnings already sent (including duration_warning)</td><td class="test-dur">0ms</td></tr>
+<tr class="test-row pass"><td class="status-cell"><span class="status-icon pass">✓</span></td><td class="test-name">shouldWarn (server) returns true when other warnings sent but not duration_warning</td><td class="test-dur">1ms</td></tr>
+<tr class="test-row pass"><td class="status-cell"><span class="status-icon pass">✓</span></td><td class="test-name">shouldAutoEnd (server) returns true at exactly 900 seconds</td><td class="test-dur">0ms</td></tr>
+<tr class="test-row pass"><td class="status-cell"><span class="status-icon pass">✓</span></td><td class="test-name">shouldAutoEnd (server) returns true when exceeds 900 seconds</td><td class="test-dur">0ms</td></tr>
+<tr class="test-row pass"><td class="status-cell"><span class="status-icon pass">✓</span></td><td class="test-name">shouldAutoEnd (server) returns false at 899 seconds</td><td class="test-dur">0ms</td></tr>
+<tr class="test-row pass"><td class="status-cell"><span class="status-icon pass">✓</span></td><td class="test-name">shouldAutoEnd (server) returns false at 0 seconds</td><td class="test-dur">1ms</td></tr>
+<tr class="test-row pass"><td class="status-cell"><span class="status-icon pass">✓</span></td><td class="test-name">checkSilenceTimeout (server) returns null when silenceStartedAt is null</td><td class="test-dur">0ms</td></tr>
+<tr class="test-row pass"><td class="status-cell"><span class="status-icon pass">✓</span></td><td class="test-name">checkSilenceTimeout (server) returns result with shouldEnd=false when below timeout</td><td class="test-dur">0ms</td></tr>
+<tr class="test-row pass"><td class="status-cell"><span class="status-icon pass">✓</span></td><td class="test-name">checkSilenceTimeout (server) returns result with shouldEnd=true when exceeds timeout</td><td class="test-dur">0ms</td></tr>
+<tr class="test-row pass"><td class="status-cell"><span class="status-icon pass">✓</span></td><td class="test-name">checkSilenceTimeout (server) returns shouldEnd=true at exactly timeout boundary</td><td class="test-dur">0ms</td></tr>
+<tr class="test-row pass"><td class="status-cell"><span class="status-icon pass">✓</span></td><td class="test-name">checkSilenceTimeout (server) calculates silenceSeconds accurately</td><td class="test-dur">0ms</td></tr>
+<tr class="test-row pass"><td class="status-cell"><span class="status-icon pass">✓</span></td><td class="test-name">formatTranscriptForCheckpoint (server) serializes transcript entries to JSON string</td><td class="test-dur">0ms</td></tr>
+<tr class="test-row pass"><td class="status-cell"><span class="status-icon pass">✓</span></td><td class="test-name">formatTranscriptForCheckpoint (server) returns empty JSON array for empty transcript</td><td class="test-dur">1ms</td></tr>
+<tr class="test-row pass"><td class="status-cell"><span class="status-icon pass">✓</span></td><td class="test-name">formatTranscriptForCheckpoint (server) preserves all fields in each entry</td><td class="test-dur">0ms</td></tr>
+<tr class="test-row pass"><td class="status-cell"><span class="status-icon pass">✓</span></td><td class="test-name">formatTranscriptForCheckpoint (server) returns a valid JSON string</td><td class="test-dur">0ms</td></tr>
+      </tbody></table>
+    </div>
+  </div>
+  <div class="suite-card suite-pass" data-category="server">
+    <div class="suite-header" onclick="toggleSuite(this)">
+      <div class="suite-left">
+        <span class="suite-icon suite-pass">✓</span>
+        <div class="suite-info">
+          <span class="category-tag" style="background:#d9770622;color:#d97706;border:1px solid #d9770644">Server</span>
+          <span class="suite-name">server/session-manager-class</span>
+        </div>
+      </div>
+      <div class="suite-right">
+        <span class="suite-count">31/31</span>
+        <span class="chevron">▼</span>
+      </div>
+    </div>
+    <div class="suite-body" style="display:none">
+      <table class="test-table"><tbody>
+        <tr class="test-row pass"><td class="status-cell"><span class="status-icon pass">✓</span></td><td class="test-name">SessionManager createSession creates a session and sends session_started message</td><td class="test-dur">7ms</td></tr>
+<tr class="test-row pass"><td class="status-cell"><span class="status-icon pass">✓</span></td><td class="test-name">SessionManager createSession calls GeminiRelay.connect with system instruction</td><td class="test-dur">1ms</td></tr>
+<tr class="test-row pass"><td class="status-cell"><span class="status-icon pass">✓</span></td><td class="test-name">SessionManager createSession constructs GeminiRelay with ws and sampleRate</td><td class="test-dur">1ms</td></tr>
+<tr class="test-row pass"><td class="status-cell"><span class="status-icon pass">✓</span></td><td class="test-name">SessionManager createSession ends existing session before creating a new one for same ws</td><td class="test-dur">4ms</td></tr>
+<tr class="test-row pass"><td class="status-cell"><span class="status-icon pass">✓</span></td><td class="test-name">SessionManager createSession sends error message when Gemini connect fails</td><td class="test-dur">9ms</td></tr>
+<tr class="test-row pass"><td class="status-cell"><span class="status-icon pass">✓</span></td><td class="test-name">SessionManager createSession uses default sampleRate of 24000 when not provided</td><td class="test-dur">1ms</td></tr>
+<tr class="test-row pass"><td class="status-cell"><span class="status-icon pass">✓</span></td><td class="test-name">SessionManager handleAudio calls relay.sendAudio with base64 audio</td><td class="test-dur">1ms</td></tr>
+<tr class="test-row pass"><td class="status-cell"><span class="status-icon pass">✓</span></td><td class="test-name">SessionManager handleAudio does nothing when no session exists for ws</td><td class="test-dur">0ms</td></tr>
+<tr class="test-row pass"><td class="status-cell"><span class="status-icon pass">✓</span></td><td class="test-name">SessionManager handleTurnComplete calls relay.sendTurnComplete and triggerUserTranscriptFlush</td><td class="test-dur">4ms</td></tr>
+<tr class="test-row pass"><td class="status-cell"><span class="status-icon pass">✓</span></td><td class="test-name">SessionManager handleTurnComplete does nothing when no session exists</td><td class="test-dur">1ms</td></tr>
+<tr class="test-row pass"><td class="status-cell"><span class="status-icon pass">✓</span></td><td class="test-name">SessionManager handleRms does nothing when no session exists</td><td class="test-dur">0ms</td></tr>
+<tr class="test-row pass"><td class="status-cell"><span class="status-icon pass">✓</span></td><td class="test-name">SessionManager handleRms does not start silence detection when aiReady is false</td><td class="test-dur">1ms</td></tr>
+<tr class="test-row pass"><td class="status-cell"><span class="status-icon pass">✓</span></td><td class="test-name">SessionManager endSession calls relay.close</td><td class="test-dur">0ms</td></tr>
+<tr class="test-row pass"><td class="status-cell"><span class="status-icon pass">✓</span></td><td class="test-name">SessionManager endSession sends session_ended message to client</td><td class="test-dur">1ms</td></tr>
+<tr class="test-row pass"><td class="status-cell"><span class="status-icon pass">✓</span></td><td class="test-name">SessionManager endSession does nothing when no session exists</td><td class="test-dur">0ms</td></tr>
+<tr class="test-row pass"><td class="status-cell"><span class="status-icon pass">✓</span></td><td class="test-name">SessionManager endSession prevents double-end by removing session from map immediately</td><td class="test-dur">0ms</td></tr>
+<tr class="test-row pass"><td class="status-cell"><span class="status-icon pass">✓</span></td><td class="test-name">SessionManager handleDisconnect ends the session for the disconnected ws</td><td class="test-dur">1ms</td></tr>
+<tr class="test-row pass"><td class="status-cell"><span class="status-icon pass">✓</span></td><td class="test-name">SessionManager closeAll ends all active sessions</td><td class="test-dur">1ms</td></tr>
+<tr class="test-row pass"><td class="status-cell"><span class="status-icon pass">✓</span></td><td class="test-name">SessionManager closeAll does nothing when no sessions are active</td><td class="test-dur">0ms</td></tr>
+<tr class="test-row pass"><td class="status-cell"><span class="status-icon pass">✓</span></td><td class="test-name">SessionManager GeminiRelay callbacks onTranscript adds entry to session transcript</td><td class="test-dur">0ms</td></tr>
+<tr class="test-row pass"><td class="status-cell"><span class="status-icon pass">✓</span></td><td class="test-name">SessionManager GeminiRelay callbacks onTranscript sets aiReady to true</td><td class="test-dur">0ms</td></tr>
+<tr class="test-row pass"><td class="status-cell"><span class="status-icon pass">✓</span></td><td class="test-name">SessionManager GeminiRelay callbacks onTurnComplete sets isUserTurn to true</td><td class="test-dur">1ms</td></tr>
+<tr class="test-row pass"><td class="status-cell"><span class="status-icon pass">✓</span></td><td class="test-name">SessionManager GeminiRelay callbacks onError sends error message to client</td><td class="test-dur">0ms</td></tr>
+<tr class="test-row pass"><td class="status-cell"><span class="status-icon pass">✓</span></td><td class="test-name">SessionManager GeminiRelay callbacks onAudioSent updates lastAudioSentAt</td><td class="test-dur">0ms</td></tr>
+<tr class="test-row pass"><td class="status-cell"><span class="status-icon pass">✓</span></td><td class="test-name">SessionManager handleRms — silence detection sends silence_detected after extended silence (&gt;= 5s but below timeout)</td><td class="test-dur">1ms</td></tr>
+<tr class="test-row pass"><td class="status-cell"><span class="status-icon pass">✓</span></td><td class="test-name">SessionManager handleRms — silence detection clears silence when RMS is above threshold</td><td class="test-dur">0ms</td></tr>
+<tr class="test-row pass"><td class="status-cell"><span class="status-icon pass">✓</span></td><td class="test-name">SessionManager handleRms — silence detection ends session when silence exceeds SILENCE_TIMEOUT_SECONDS</td><td class="test-dur">1ms</td></tr>
+<tr class="test-row pass"><td class="status-cell"><span class="status-icon pass">✓</span></td><td class="test-name">SessionManager handleRms — silence detection skips silence detection while audio is still draining (lastAudioSentAt is recent)</td><td class="test-dur">0ms</td></tr>
+<tr class="test-row pass"><td class="status-cell"><span class="status-icon pass">✓</span></td><td class="test-name">SessionManager duration timer (checkDuration) sends warning when interview exceeds 12 minutes</td><td class="test-dur">1ms</td></tr>
+<tr class="test-row pass"><td class="status-cell"><span class="status-icon pass">✓</span></td><td class="test-name">SessionManager duration timer (checkDuration) auto-ends session when interview exceeds 15 minutes</td><td class="test-dur">2ms</td></tr>
+<tr class="test-row pass"><td class="status-cell"><span class="status-icon pass">✓</span></td><td class="test-name">SessionManager checkpoint timer (saveCheckpoint) calls updateTranscript when checkpoint interval fires</td><td class="test-dur">1ms</td></tr>
+      </tbody></table>
+    </div>
+  </div>
+  <div class="suite-card suite-pass" data-category="server">
+    <div class="suite-header" onclick="toggleSuite(this)">
+      <div class="suite-left">
+        <span class="suite-icon suite-pass">✓</span>
+        <div class="suite-info">
+          <span class="category-tag" style="background:#d9770622;color:#d97706;border:1px solid #d9770644">Server</span>
+          <span class="suite-name">server/session-manager</span>
+        </div>
+      </div>
+      <div class="suite-right">
+        <span class="suite-count">13/13</span>
+        <span class="chevron">▼</span>
+      </div>
+    </div>
+    <div class="suite-body" style="display:none">
+      <table class="test-table"><tbody>
+        <tr class="test-row pass"><td class="status-cell"><span class="status-icon pass">✓</span></td><td class="test-name">shouldWarn returns true when elapsed reaches warning threshold (720s)</td><td class="test-dur">1ms</td></tr>
+<tr class="test-row pass"><td class="status-cell"><span class="status-icon pass">✓</span></td><td class="test-name">shouldWarn returns true when elapsed exceeds warning threshold</td><td class="test-dur">0ms</td></tr>
+<tr class="test-row pass"><td class="status-cell"><span class="status-icon pass">✓</span></td><td class="test-name">shouldWarn returns false when below warning threshold</td><td class="test-dur">0ms</td></tr>
+<tr class="test-row pass"><td class="status-cell"><span class="status-icon pass">✓</span></td><td class="test-name">shouldWarn returns false when warning already sent</td><td class="test-dur">0ms</td></tr>
+<tr class="test-row pass"><td class="status-cell"><span class="status-icon pass">✓</span></td><td class="test-name">shouldAutoEnd returns true when elapsed reaches max duration (900s)</td><td class="test-dur">0ms</td></tr>
+<tr class="test-row pass"><td class="status-cell"><span class="status-icon pass">✓</span></td><td class="test-name">shouldAutoEnd returns true when elapsed exceeds max duration</td><td class="test-dur">0ms</td></tr>
+<tr class="test-row pass"><td class="status-cell"><span class="status-icon pass">✓</span></td><td class="test-name">shouldAutoEnd returns false when below max duration</td><td class="test-dur">0ms</td></tr>
+<tr class="test-row pass"><td class="status-cell"><span class="status-icon pass">✓</span></td><td class="test-name">checkSilenceTimeout returns null when no silence detected (silenceStartedAt is null)</td><td class="test-dur">0ms</td></tr>
+<tr class="test-row pass"><td class="status-cell"><span class="status-icon pass">✓</span></td><td class="test-name">checkSilenceTimeout returns silence duration when below timeout</td><td class="test-dur">1ms</td></tr>
+<tr class="test-row pass"><td class="status-cell"><span class="status-icon pass">✓</span></td><td class="test-name">checkSilenceTimeout returns shouldEnd=true when silence exceeds timeout</td><td class="test-dur">0ms</td></tr>
+<tr class="test-row pass"><td class="status-cell"><span class="status-icon pass">✓</span></td><td class="test-name">checkSilenceTimeout returns shouldEnd=true at exactly timeout</td><td class="test-dur">0ms</td></tr>
+<tr class="test-row pass"><td class="status-cell"><span class="status-icon pass">✓</span></td><td class="test-name">formatTranscriptForCheckpoint returns JSON array of transcript entries</td><td class="test-dur">1ms</td></tr>
+<tr class="test-row pass"><td class="status-cell"><span class="status-icon pass">✓</span></td><td class="test-name">formatTranscriptForCheckpoint returns empty array for empty transcript</td><td class="test-dur">0ms</td></tr>
+      </tbody></table>
+    </div>
+  </div>
+  <div class="suite-card suite-pass" data-category="server">
+    <div class="suite-header" onclick="toggleSuite(this)">
+      <div class="suite-left">
+        <span class="suite-icon suite-pass">✓</span>
+        <div class="suite-info">
+          <span class="category-tag" style="background:#d9770622;color:#d97706;border:1px solid #d9770644">Server</span>
+          <span class="suite-name">server/supabase-ops</span>
+        </div>
+      </div>
+      <div class="suite-right">
+        <span class="suite-count">12/12</span>
+        <span class="chevron">▼</span>
+      </div>
+    </div>
+    <div class="suite-body" style="display:none">
+      <table class="test-table"><tbody>
+        <tr class="test-row pass"><td class="status-cell"><span class="status-icon pass">✓</span></td><td class="test-name">server/supabase-ops updateTranscript calls update with parsed transcript JSON</td><td class="test-dur">4ms</td></tr>
+<tr class="test-row pass"><td class="status-cell"><span class="status-icon pass">✓</span></td><td class="test-name">server/supabase-ops updateTranscript calls .eq with the interviewId</td><td class="test-dur">0ms</td></tr>
+<tr class="test-row pass"><td class="status-cell"><span class="status-icon pass">✓</span></td><td class="test-name">server/supabase-ops updateTranscript throws when Supabase returns an error</td><td class="test-dur">3ms</td></tr>
+<tr class="test-row pass"><td class="status-cell"><span class="status-icon pass">✓</span></td><td class="test-name">server/supabase-ops updateTranscript does not throw on success</td><td class="test-dur">0ms</td></tr>
+<tr class="test-row pass"><td class="status-cell"><span class="status-icon pass">✓</span></td><td class="test-name">server/supabase-ops completeInterview calls update with transcript, status, and duration</td><td class="test-dur">0ms</td></tr>
+<tr class="test-row pass"><td class="status-cell"><span class="status-icon pass">✓</span></td><td class="test-name">server/supabase-ops completeInterview calls .eq with the interviewId</td><td class="test-dur">1ms</td></tr>
+<tr class="test-row pass"><td class="status-cell"><span class="status-icon pass">✓</span></td><td class="test-name">server/supabase-ops completeInterview throws when Supabase returns an error</td><td class="test-dur">0ms</td></tr>
+<tr class="test-row pass"><td class="status-cell"><span class="status-icon pass">✓</span></td><td class="test-name">server/supabase-ops completeInterview does not throw on success</td><td class="test-dur">0ms</td></tr>
+<tr class="test-row pass"><td class="status-cell"><span class="status-icon pass">✓</span></td><td class="test-name">server/supabase-ops logAiEvent inserts a log entry with correct fields</td><td class="test-dur">1ms</td></tr>
+<tr class="test-row pass"><td class="status-cell"><span class="status-icon pass">✓</span></td><td class="test-name">server/supabase-ops logAiEvent does not throw on success</td><td class="test-dur">0ms</td></tr>
+<tr class="test-row pass"><td class="status-cell"><span class="status-icon pass">✓</span></td><td class="test-name">server/supabase-ops logAiEvent logs error message but does not throw when insert fails</td><td class="test-dur">1ms</td></tr>
+<tr class="test-row pass"><td class="status-cell"><span class="status-icon pass">✓</span></td><td class="test-name">server/supabase-ops logAiEvent handles null payload gracefully</td><td class="test-dur">0ms</td></tr>
+      </tbody></table>
+    </div>
+  </div>
+</div>
+
+<footer>Generated from Jest JSON reporter · 243 tests · 22 suites · 96.99% coverage</footer>
+
+<script>
+  function toggleSuite(header) {
+    const body = header.nextElementSibling;
+    const chevron = header.querySelector('.chevron');
+    const isOpen = body.style.display !== 'none';
+    body.style.display = isOpen ? 'none' : 'block';
+    chevron.classList.toggle('open', !isOpen);
+  }
+  function filterSuites(cat, btn) {
+    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    document.querySelectorAll('.suite-card').forEach(card => {
+      card.style.display = (cat === 'all' || card.dataset.category === cat) ? '' : 'none';
+    });
+  }
+  let allExpanded = false;
+  function expandAll() {
+    allExpanded = !allExpanded;
+    document.querySelectorAll('.suite-body').forEach(b => {
+      b.style.display = allExpanded ? 'block' : 'none';
+    });
+    document.querySelectorAll('.chevron').forEach(c => {
+      c.classList.toggle('open', allExpanded);
+    });
+  }
+</script>
+</body>
+</html>

@@ -12,7 +12,7 @@ We set out to build a tool that eliminates this bias entirely: an AI interviewer
 
 The application has three layers: a Next.js 14 frontend, a Node.js WebSocket relay server, and Supabase for authentication and data persistence.
 
-The most critical architecture decision was introducing the relay server. Jayson had already built a working prototype — a browser-only SPA that called the Gemini Live API directly from the frontend. It worked great for a demo, but production requirements made it untenable. API keys would be exposed in browser source code. There was no way to persist transcripts or enforce authentication. Multi-user support was impossible.
+The most critical architecture decision was introducing the relay server. Jason had already built a working prototype — a browser-only SPA that called the Gemini Live API directly from the frontend. It worked great for a demo, but production requirements made it untenable. API keys would be exposed in browser source code. There was no way to persist transcripts or enforce authentication. Multi-user support was impossible.
 
 The relay server sits between the browser and Google's Gemini Live API. The browser captures microphone audio, encodes it as PCM16, and streams it over a WebSocket to our server. The server forwards audio to Gemini and relays responses back — both the AI's voice audio and its transcribed text. This keeps the API key server-side, enables transcript persistence through incremental checkpoints to Supabase, and supports multiple concurrent interview sessions.
 

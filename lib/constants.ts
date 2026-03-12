@@ -40,3 +40,6 @@ export const WS_CLOSE_DELAY_MS = 500;
 /** Delay before navigating to dashboard after session ends (ms) */
 export const POST_SESSION_NAV_DELAY_MS = 2000;
 
+/** Safety timeout waiting for session_started from server (ms). 5s buffer above server-side Gemini timeout. */
+export const SESSION_START_TIMEOUT_MS = 25_000;
+

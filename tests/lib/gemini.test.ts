@@ -159,4 +159,32 @@ describe('callGeminiPro', () => {
 
     expect(result).toEqual(expected);
   });
+
+  it('throws when GOOGLE_AI_API_KEY is not set', async () => {
+    delete process.env.GOOGLE_AI_API_KEY;
+
+    await expect(
+      callGeminiPro('system', 'content', sampleSchema),
+    ).rejects.toThrow('GOOGLE_AI_API_KEY environment variable is not set');
+  });
+
+  it('retries on 503 error and succeeds', async () => {
+    const error503 = new Error('Service unavailable');
+    (error503 as unknown as Record<string, unknown>).status = 503;
+
+    mockGenerateContent
+      .mockRejectedValueOnce(error503)
+      .mockResolvedValueOnce({
+        text: JSON.stringify({ score: 70, summary: 'recovered from 503' }),
+      });
+
+    const result = await callGeminiPro<{ score: number; summary: string }>(
+      'system',
+      'content',
+      sampleSchema,
+    );
+
+    expect(result).toEqual({ score: 70, summary: 'recovered from 503' });
+    expect(mockGenerateContent).toHaveBeenCalledTimes(2);
+  });
 });

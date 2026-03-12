@@ -17,13 +17,13 @@ jobs:
 
       - name: Deploy to production (main)
         if: github.ref == 'refs/heads/main'
-        run: fly deploy --config fly.toml --app digital-entrepreneurs-relay --remote-only
+        run: flyctl deploy --config fly.toml --app digital-entrepreneurs-relay --remote-only
         env:
           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
 
       - name: Deploy to development (development branch)
         if: github.ref == 'refs/heads/development'
-        run: fly deploy --config fly.dev.toml --app digital-entrepreneurs-relay-dev --remote-only
+        run: flyctl deploy --config fly.dev.toml --app digital-entrepreneurs-relay-dev --remote-only
         env:
           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
 

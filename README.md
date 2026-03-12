@@ -2,6 +2,16 @@
 
 Automates startup validation through real-time Voice AI interviews that strictly enforce the [Mom Test](http://momtestbook.com/) framework, then analyzes transcripts to extract validated pain points and insights.
 
+## Links
+
+| | |
+|---|---|
+| **GitHub** | https://github.com/Daiki007121/Digital-Entrepreneurs-AI-Powered-Mom-Test-Validation |
+| **Production** | https://digital-entrepreneurs.vercel.app |
+| **Eval Dashboard** | https://digital-entrepreneurs.vercel.app/eval-dashboard.html |
+| **Demo Video** | https://youtu.be/9v_44T3XTT0 |
+| **Blog Post** | https://medium.com/@daiki007121/building-an-ai-powered-mom-test-interviewer-real-time-ai-for-startup-validation-53a79292e0ce |
+
 ## Tech Stack
 
 | Layer | Technology |
@@ -27,7 +37,7 @@ The relay server bridges the client and Gemini Live API — the Google AI API ke
 ## Prerequisites
 
 - **Node.js** >= 18
-- **npm** >= 9
+- **pnpm** >= 9 (`npm install -g pnpm`)
 - **Supabase** account with a project set up (see [Database Setup](#database-setup))
 - **Google AI API key** with Gemini access (get one at [Google AI Studio](https://aistudio.google.com/apikey))
 
@@ -40,10 +50,10 @@ git clone https://github.com/Daiki007121/Digital-Entrepreneurs-AI-Powered-Mom-Te
 cd Digital-Entrepreneurs-AI-Powered-Mom-Test-Validation
 
 # Install frontend dependencies
-npm install
+pnpm install
 
 # Install relay server dependencies
-cd server && npm install && cd ..
+cd server && pnpm install && cd ..
 ```
 
 ### 2. Environment variables
@@ -142,14 +152,14 @@ You need **two terminals**:
 **Terminal 1 — Next.js frontend** (port 3000):
 
 ```bash
-npm run dev
+pnpm dev
 ```
 
 **Terminal 2 — Relay server** (port 8081):
 
 ```bash
 cd server
-npm run dev
+pnpm dev
 ```
 
 Then open [http://localhost:3000](http://localhost:3000) in your browser.
@@ -202,31 +212,31 @@ tests/                  # Jest + React Testing Library tests
 
 | Command | Description |
 |---------|-------------|
-| `npm run dev` | Start Next.js dev server |
-| `npm run build` | Production build |
-| `npm run lint` | ESLint |
-| `npm run typecheck` | TypeScript type checking |
-| `npm test` | Run Jest tests |
-| `npm run test:coverage` | Run tests with coverage |
+| `pnpm dev` | Start Next.js dev server |
+| `pnpm build` | Production build |
+| `pnpm lint` | ESLint |
+| `pnpm typecheck` | TypeScript type checking |
+| `pnpm test` | Run Jest tests |
+| `pnpm test:coverage` | Run tests with coverage |
 
 ### Relay Server (`server/`)
 
 | Command | Description |
 |---------|-------------|
-| `npm run dev` | Start with hot reload (`tsx watch`) |
-| `npm run build` | Compile TypeScript |
-| `npm start` | Run compiled JS |
-| `npm run typecheck` | TypeScript type checking |
+| `pnpm dev` | Start with hot reload (`tsx watch`) |
+| `pnpm build` | Compile TypeScript |
+| `pnpm start` | Run compiled JS |
+| `pnpm typecheck` | TypeScript type checking |
 
 ## Testing
 
 ```bash
 # Frontend tests
-npm test
+pnpm test
 
 # Type checking (both)
-npm run typecheck
-cd server && npm run typecheck
+pnpm typecheck
+cd server && pnpm typecheck
 ```
 
 ## Known Limitations (MVP)

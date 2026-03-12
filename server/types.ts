@@ -4,6 +4,7 @@ export interface SessionConfig {
   topic: string;
   targetUser: string;
   userId: string;
+  sampleRate: number;
 }
 
 /** Events forwarded from Gemini Live API */
@@ -17,16 +18,16 @@ export interface GeminiLiveEvent {
 /** Messages sent from relay server to client */
 export interface ServerMessage {
   type:
-    | 'audio'
-    | 'transcript'
-    | 'user_transcript'
-    | 'turn_complete'
-    | 'interrupted'
-    | 'session_started'
-    | 'session_ended'
-    | 'warning'
-    | 'silence_detected'
-    | 'error';
+  | 'audio'
+  | 'transcript'
+  | 'user_transcript'
+  | 'turn_complete'
+  | 'interrupted'
+  | 'session_started'
+  | 'session_ended'
+  | 'warning'
+  | 'silence_detected'
+  | 'error';
   data?: string;
   text?: string;
   message?: string;
@@ -36,7 +37,7 @@ export interface ServerMessage {
 
 /** Messages sent from client to relay server */
 export interface ClientMessage {
-  type: 'audio' | 'rms' | 'start_session' | 'end_session';
+  type: 'audio' | 'rms' | 'start_session' | 'end_session' | 'client_turn_complete';
   data?: string;
   rms?: number;
   config?: SessionConfig;
@@ -61,6 +62,10 @@ export interface ActiveSession {
   silenceStartedAt: number | null;
   /** True once AI has produced its first transcript — silence detection starts after this */
   aiReady: boolean;
+  /** True when the AI has finished its turn and is waiting for the user to speak */
+  isUserTurn: boolean;
+  /** Timestamp of last audio chunk sent to client — silence tracking blocked for AUDIO_DRAIN_BUFFER_MS after this */
+  lastAudioSentAt: number | null;
   warningsSent: Set<string>;
   checkpointTimer: ReturnType<typeof setInterval> | null;
   durationTimer: ReturnType<typeof setInterval> | null;

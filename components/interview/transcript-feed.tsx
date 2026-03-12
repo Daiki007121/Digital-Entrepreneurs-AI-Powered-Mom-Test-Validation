@@ -11,12 +11,31 @@ interface TranscriptFeedProps {
   interimUserText?: string;
 }
 
+// Merge consecutive user entries that arrive close together (< 15s gap) into one bubble.
+// Handles cases where Gemini sends inputTranscription as multiple fragments.
+function mergeConsecutiveUserEntries(entries: TranscriptEntry[]): TranscriptEntry[] {
+  return entries.reduce<TranscriptEntry[]>((acc, entry) => {
+    const prev = acc[acc.length - 1];
+    const isUser = entry.speaker === 'user';
+    const prevIsUser = prev?.speaker === 'user';
+    const withinWindow = prev && entry.timestamp - prev.timestamp < 15_000;
+    if (isUser && prevIsUser && withinWindow) {
+      return [
+        ...acc.slice(0, -1),
+        { ...prev, text: `${prev.text} ${entry.text}` },
+      ];
+    }
+    return [...acc, entry];
+  }, []);
+}
+
 export function TranscriptFeed({ transcript, interimUserText }: TranscriptFeedProps) {
   const feedRef = useRef<HTMLDivElement>(null);
+  const merged = mergeConsecutiveUserEntries(transcript);
 
   useEffect(() => {
     if (feedRef.current) {
-      feedRef.current.scrollTop = feedRef.current.scrollHeight;
+      feedRef.current.scrollTo({ top: feedRef.current.scrollHeight, behavior: 'smooth' });
     }
   }, [transcript, interimUserText]);
 
@@ -28,13 +47,13 @@ export function TranscriptFeed({ transcript, interimUserText }: TranscriptFeedPr
       aria-label="Interview transcript"
       className="flex flex-col gap-3 overflow-y-auto h-full p-4"
     >
-      {transcript.length === 0 && !interimUserText && (
+      {merged.length === 0 && !interimUserText && (
         <p className="text-center text-[var(--text-muted)] text-sm py-8">
           Transcript will appear here as the interview progresses...
         </p>
       )}
 
-      {transcript.map((entry, i) => {
+      {merged.map((entry, i) => {
         const isAi = entry.speaker === 'ai' || entry.speaker === 'ai-transcription';
         const sanitizedText = DOMPurify.sanitize(entry.text);
 

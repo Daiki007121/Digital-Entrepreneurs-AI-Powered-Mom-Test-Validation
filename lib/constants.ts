@@ -29,7 +29,7 @@ export type TranscriptSpeaker = (typeof TRANSCRIPT_SPEAKER)[keyof typeof TRANSCR
 export const WS_RECONNECT_MAX_RETRIES = 5;
 
 /** RMS silence threshold — values below this are considered silence */
-export const RMS_SILENCE_THRESHOLD = 0.01;
+export const RMS_SILENCE_THRESHOLD = 0.05;
 
 /** Transcript checkpoint interval in milliseconds (30 seconds) */
 export const TRANSCRIPT_CHECKPOINT_INTERVAL_MS = 30_000;
@@ -39,4 +39,7 @@ export const WS_CLOSE_DELAY_MS = 500;
 
 /** Delay before navigating to dashboard after session ends (ms) */
 export const POST_SESSION_NAV_DELAY_MS = 2000;
+
+/** Safety timeout waiting for session_started from server (ms). 5s buffer above server-side Gemini timeout. */
+export const SESSION_START_TIMEOUT_MS = 25_000;
 

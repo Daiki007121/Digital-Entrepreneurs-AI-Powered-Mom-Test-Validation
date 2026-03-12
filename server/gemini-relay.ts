@@ -1,13 +1,16 @@
 // Implements #3: Gemini Live API relay — bridges client WebSocket to Gemini
 import { GoogleGenAI, Modality, type Session } from '@google/genai';
-import type { WebSocket } from 'ws';
+import { WebSocket } from 'ws';
 import type { ServerMessage, TranscriptEntry } from './types.js';
 
 const GEMINI_MODEL = 'gemini-2.5-flash-native-audio-latest';
 
 export interface GeminiRelayCallbacks {
   onTranscript: (entry: TranscriptEntry) => void;
+  onTurnComplete: () => void;
   onError: (error: string) => void;
+  /** Called each time an audio chunk is sent to the client */
+  onAudioSent?: () => void;
 }
 
 /**
@@ -23,10 +26,17 @@ export class GeminiRelay {
   private aiTranscriptBuffer = '';
   /** Buffer for accumulating user input transcription fragments */
   private userTranscriptBuffer = '';
+  /** Debounce timer for flushing user transcript after turnComplete */
+  private userFlushTimerRef: ReturnType<typeof setTimeout> | null = null;
+  /** True once flush has been authorised (client_turn_complete or Gemini turnComplete).
+   *  Cleared only after an actual flush so late-arriving deltas still coalesce. */
+  private userFlushPending = false;
+  private sampleRate: number;
 
-  constructor(ws: WebSocket, callbacks: GeminiRelayCallbacks) {
+  constructor(ws: WebSocket, callbacks: GeminiRelayCallbacks, sampleRate: number) {
     this.ws = ws;
     this.callbacks = callbacks;
+    this.sampleRate = sampleRate;
   }
 
   /**
@@ -97,11 +107,24 @@ export class GeminiRelay {
       this.session.sendRealtimeInput({
         audio: {
           data: base64Audio,
-          mimeType: 'audio/pcm;rate=24000',
+          mimeType: `audio/pcm;rate=${this.sampleRate}`,
         },
       });
     } catch (err) {
       console.error('[GeminiRelay] Error sending audio:', err);
+    }
+  }
+
+  /**
+   * Explictly signals to Gemini that the user has stopped speaking via a clientContent message.
+   * This forces the VAD to stop waiting and generate a response immediately.
+   */
+  sendTurnComplete(): void {
+    if (!this.session || this.closed) return;
+    try {
+      this.session.sendClientContent({ turns: [], turnComplete: true });
+    } catch (err) {
+      console.error('[GeminiRelay] Error sending turn complete:', err);
     }
   }
 
@@ -125,6 +148,7 @@ export class GeminiRelay {
                 type: 'audio',
                 data: inlineData.data as string,
               });
+              this.callbacks.onAudioSent?.();
             }
           }
         }
@@ -139,65 +163,105 @@ export class GeminiRelay {
       }
 
       // Handle input audio transcription (user speech text from Gemini)
-      // Unlike outputTranscription, inputTranscription sends the full accumulated text
-      // each time (not incremental deltas), so we replace rather than append
+      // inputTranscription sends incremental deltas (like outputTranscription),
+      // so we append rather than replace to accumulate the full sentence.
+      // Always reschedule flush on each delta — Gemini may send deltas late (after
+      // it starts generating its response), so we can't rely on triggerUserTranscriptFlush()
+      // having pre-populated the buffer. APPEND + 1000ms debounce coalesces all deltas
+      // into one sentence entry regardless of when they arrive.
       const inputTranscription = serverContent.inputTranscription as
         | Record<string, unknown>
         | undefined;
       if (inputTranscription?.text) {
-        this.userTranscriptBuffer = inputTranscription.text as string;
+        this.userTranscriptBuffer += inputTranscription.text as string;
+        // Only reschedule if flush has already been authorised — prevents premature
+        // word-by-word flushes when deltas arrive more than 1000ms apart.
+        if (this.userFlushPending) {
+          this.scheduleUserTranscriptFlush();
+        }
       }
 
-      // Handle turn complete — flush buffered AI transcript as one message
+      // Handle turn complete — flush AI transcript immediately, debounce user transcript
       if (serverContent.turnComplete) {
-        this.flushTranscriptBuffers();
+        this.flushAiTranscriptBuffer();
+        this.userFlushPending = true;
+        this.scheduleUserTranscriptFlush();
         this.sendToClient({ type: 'turn_complete' });
+        this.callbacks.onTurnComplete();
       }
 
       // Handle interruption — flush whatever we have so far
       if (serverContent.interrupted) {
-        this.flushTranscriptBuffers();
+        this.flushAiTranscriptBuffer();
+        this.userFlushPending = true;
+        this.scheduleUserTranscriptFlush();
         this.sendToClient({ type: 'interrupted' });
+        this.callbacks.onTurnComplete();
       }
     }
   }
 
-  /** Flushes accumulated transcript buffers as complete messages */
-  private flushTranscriptBuffers(): void {
+  /** Flushes accumulated AI transcript buffer as a complete message */
+  private flushAiTranscriptBuffer(): void {
     if (this.aiTranscriptBuffer.trim()) {
       const text = this.aiTranscriptBuffer.trim();
       this.sendToClient({ type: 'transcript', text });
-      this.callbacks.onTranscript({
-        speaker: 'ai-transcription',
-        text,
-        timestamp: Date.now(),
-      });
+      this.callbacks.onTranscript({ speaker: 'ai-transcription', text, timestamp: Date.now() });
       this.aiTranscriptBuffer = '';
     }
+  }
 
+  /** Flushes accumulated user transcript buffer as a complete message */
+  private flushUserTranscriptBuffer(): void {
     if (this.userTranscriptBuffer.trim()) {
       const text = this.userTranscriptBuffer.trim();
       this.sendToClient({ type: 'user_transcript', text });
-      this.callbacks.onTranscript({
-        speaker: 'user',
-        text,
-        timestamp: Date.now(),
-      });
+      this.callbacks.onTranscript({ speaker: 'user', text, timestamp: Date.now() });
       this.userTranscriptBuffer = '';
+      this.userFlushPending = false; // clear only after a real flush
     }
+  }
+
+  /**
+   * Called by SessionManager when client signals end of user turn (client_turn_complete).
+   * Schedules a prompt flush so user transcript appears ~2.5s after user stops speaking,
+   * independent of Gemini response latency.
+   */
+  triggerUserTranscriptFlush(): void {
+    this.userFlushPending = true;
+    this.scheduleUserTranscriptFlush();
+  }
+
+  /**
+   * Schedules a debounced flush of the user transcript buffer (3000ms).
+   * Resets the timer if called again before it fires, allowing late
+   * inputTranscription updates from Gemini to be captured.
+   */
+  private scheduleUserTranscriptFlush(): void {
+    if (this.userFlushTimerRef) clearTimeout(this.userFlushTimerRef);
+    this.userFlushTimerRef = setTimeout(() => {
+      this.flushUserTranscriptBuffer();
+      this.userFlushTimerRef = null;
+    }, 3000);
   }
 
   /** Send a message to the client WebSocket */
   private sendToClient(msg: ServerMessage): void {
-    if (this.ws.readyState === 1) {
-      // WebSocket.OPEN
+    if (this.ws.readyState === WebSocket.OPEN) {
       this.ws.send(JSON.stringify(msg));
     }
   }
 
   /** Close the Gemini session */
   async close(): Promise<void> {
-    this.flushTranscriptBuffers();
+    // Cancel any pending debounce and flush immediately
+    if (this.userFlushTimerRef) {
+      clearTimeout(this.userFlushTimerRef);
+      this.userFlushTimerRef = null;
+    }
+    this.flushAiTranscriptBuffer();
+    this.userFlushPending = true;
+    this.flushUserTranscriptBuffer();
     this.closed = true;
     if (this.session) {
       try {

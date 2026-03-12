@@ -44,3 +44,4 @@ spike/
 
 # playwright MCP
 .playwright-mcp/
+.vercel

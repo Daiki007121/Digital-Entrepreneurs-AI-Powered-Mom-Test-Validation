@@ -1,0 +1,25 @@
+# Exclude Next.js frontend artifacts — Docker only needs server/ and prompts/
+.next/
+out/
+node_modules/
+
+# Next.js app source (not needed in relay server image)
+app/
+components/
+lib/
+types/
+tests/
+docs/
+design-system/
+spike/
+
+# Vercel / local configs
+.vercel/
+.git/
+*.tsbuildinfo
+
+# Secrets — never bake into Docker image
+.env
+.env.local
+.env.*.local
+server/.env

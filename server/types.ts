@@ -64,6 +64,8 @@ export interface ActiveSession {
   aiReady: boolean;
   /** True when the AI has finished its turn and is waiting for the user to speak */
   isUserTurn: boolean;
+  /** Timestamp of last audio chunk sent to client — silence tracking blocked for AUDIO_DRAIN_BUFFER_MS after this */
+  lastAudioSentAt: number | null;
   warningsSent: Set<string>;
   checkpointTimer: ReturnType<typeof setInterval> | null;
   durationTimer: ReturnType<typeof setInterval> | null;

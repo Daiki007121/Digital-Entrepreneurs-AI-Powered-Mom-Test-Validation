@@ -148,6 +148,18 @@ export function useAudioSession(): AudioSessionReturn {
       setIsCapturing(true);
       return audioContext.sampleRate;
     } catch (err) {
+      // Release any partially initialized audio resources
+      scriptProcessorRef.current?.disconnect();
+      sourceRef.current?.disconnect();
+      streamRef.current?.getTracks().forEach((track) => track.stop());
+      if (audioContextRef.current?.state !== 'closed') {
+        void audioContextRef.current?.close();
+      }
+      scriptProcessorRef.current = null;
+      sourceRef.current = null;
+      streamRef.current = null;
+      audioContextRef.current = null;
+
       if (err instanceof DOMException && err.name === 'NotAllowedError') {
         toast.error(
           'Microphone access denied. Please allow microphone access in your browser settings.',

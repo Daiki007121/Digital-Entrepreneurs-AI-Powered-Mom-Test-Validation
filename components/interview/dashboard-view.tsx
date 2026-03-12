@@ -3,6 +3,7 @@
 
 import { useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
+import toast from 'react-hot-toast';
 import { Plus, MessageSquare } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { InterviewCard } from './interview-card';
@@ -29,11 +30,20 @@ export function DashboardView({ interviews }: DashboardViewProps) {
   const router = useRouter();
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  // Poll when any interview is analyzing, or was recently active (covers the
-  // timing gap where the server hasn't yet transitioned active → completed)
+  // Show success toast after returning from a completed interview session
+  useEffect(() => {
+    const justEnded = sessionStorage.getItem('interview_just_ended');
+    if (justEnded) {
+      sessionStorage.removeItem('interview_just_ended');
+      toast.success('Interview ended. Analysis will begin shortly.');
+    }
+  }, []);
+
+  // Poll whenever any interview may be transitioning:
+  // - 'completed' means analysis is running
+  // - 'active' means session may have just ended (server may not have updated status yet)
   const hasAnalyzing = interviews.some(
-    (i) => i.status === 'completed' ||
-      (i.status === 'active' && Date.now() - new Date(i.updated_at).getTime() < 60_000)
+    (i) => i.status === 'completed' || i.status === 'active'
   );
 
   useEffect(() => {

@@ -1,5 +1,5 @@
 // Implements #3: Session management for interview WebSocket connections
-import type { WebSocket } from 'ws';
+import { WebSocket } from 'ws';
 import type {
   SessionConfig,
   ServerMessage,
@@ -11,6 +11,8 @@ import {
   SILENCE_TIMEOUT_SECONDS,
   RMS_SILENCE_THRESHOLD,
   TRANSCRIPT_CHECKPOINT_INTERVAL_MS,
+  GEMINI_CONNECT_TIMEOUT_MS,
+  AUDIO_DRAIN_BUFFER_MS,
 } from './constants.js';
 import {
   shouldWarn,
@@ -53,6 +55,7 @@ export class SessionManager {
       silenceStartedAt: null,
       aiReady: false,
       isUserTurn: false,
+      lastAudioSentAt: null,
       warningsSent: new Set(),
       checkpointTimer: null,
       durationTimer: null,
@@ -76,6 +79,9 @@ export class SessionManager {
           console.error(`[SessionManager] Gemini error for ${config.interviewId}:`, error);
           this.sendToClient(ws, { type: 'error', message: `Gemini error: ${error}` });
         },
+        onAudioSent: () => {
+          session.lastAudioSentAt = Date.now();
+        },
       },
       config.sampleRate || 24000
     );
@@ -84,8 +90,18 @@ export class SessionManager {
     const { buildInterviewPrompt } = await import('./prompt-bridge.js');
     const systemInstruction = buildInterviewPrompt(config.topic, config.targetUser);
 
+    const connectWithTimeout = Promise.race([
+      relay.connect(systemInstruction),
+      new Promise<never>((_, reject) =>
+        setTimeout(
+          () => reject(new Error('Gemini connection timed out — please try again')),
+          GEMINI_CONNECT_TIMEOUT_MS,
+        )
+      ),
+    ]);
+
     try {
-      await relay.connect(systemInstruction);
+      await connectWithTimeout;
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Failed to connect to Gemini';
       this.sendToClient(ws, { type: 'error', message: msg });
@@ -135,6 +151,9 @@ export class SessionManager {
     entry.session.isUserTurn = false;
     entry.session.silenceStartedAt = null;
     entry.relay.sendTurnComplete();
+    // Flush user transcript promptly (~2.5s after user stops speaking),
+    // decoupled from Gemini response latency which can be 120s+ in later turns
+    entry.relay.triggerUserTranscriptFlush();
   }
 
   /**
@@ -149,6 +168,15 @@ export class SessionManager {
     // Don't track silence until AI has spoken at least once, and only during user's turn
     if (!session.aiReady || !session.isUserTurn) {
       session.silenceStartedAt = null; // clear any errant silence timer
+      return;
+    }
+
+    // Don't count silence while AI audio is still draining on the client
+    if (
+      session.lastAudioSentAt !== null &&
+      Date.now() - session.lastAudioSentAt < AUDIO_DRAIN_BUFFER_MS
+    ) {
+      session.silenceStartedAt = null;
       return;
     }
 
@@ -323,8 +351,7 @@ export class SessionManager {
 
   /** Sends a message to a client WebSocket */
   private sendToClient(ws: WebSocket, msg: ServerMessage): void {
-    if (ws.readyState === 1) {
-      // WebSocket.OPEN
+    if (ws.readyState === WebSocket.OPEN) {
       ws.send(JSON.stringify(msg));
     }
   }

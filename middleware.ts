@@ -25,13 +25,16 @@ export async function middleware(request: NextRequest) {
     },
   );
 
+  // Use getSession() instead of getUser() to avoid network calls to Supabase
+  // that cause MIDDLEWARE_INVOCATION_TIMEOUT on Vercel Edge Runtime.
+  // Server-side validation with getUser() should be done in pages/API routes.
   const {
-    data: { user },
-  } = await supabase.auth.getUser();
+    data: { session },
+  } = await supabase.auth.getSession();
 
   const isProtected = PROTECTED_PATHS.some((path) => request.nextUrl.pathname.startsWith(path));
 
-  if (isProtected && !user) {
+  if (isProtected && !session) {
     const url = request.nextUrl.clone();
     url.pathname = '/login';
     url.searchParams.set('redirectTo', request.nextUrl.pathname);
@@ -41,7 +44,7 @@ export async function middleware(request: NextRequest) {
   // Redirect authenticated users away from auth pages
   const isAuthPage =
     request.nextUrl.pathname === '/login' || request.nextUrl.pathname === '/signup';
-  if (isAuthPage && user) {
+  if (isAuthPage && session) {
     const url = request.nextUrl.clone();
     url.pathname = '/dashboard';
     return NextResponse.redirect(url);

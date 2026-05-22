@@ -1,7 +1,7 @@
 # Fly.io configuration for the Gemini relay server — PRODUCTION environment.
 # Deployed automatically on push to the `main` branch via GitHub Actions.
 
-app = "digital-entrepreneurs-relay"
+app = "digital-entrepreneurs-relay-daiki"
 primary_region = "sjc"
 
 [build]

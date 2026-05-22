@@ -25,13 +25,15 @@ export async function middleware(request: NextRequest) {
     },
   );
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  // Use getClaims() to verify the JWT signature locally without a network
+  // round-trip to Supabase. This avoids MIDDLEWARE_INVOCATION_TIMEOUT on Vercel
+  // Edge while still rejecting forged session cookies (unlike getSession()).
+  const { data } = await supabase.auth.getClaims();
+  const isAuthenticated = !!data?.claims;
 
   const isProtected = PROTECTED_PATHS.some((path) => request.nextUrl.pathname.startsWith(path));
 
-  if (isProtected && !user) {
+  if (isProtected && !isAuthenticated) {
     const url = request.nextUrl.clone();
     url.pathname = '/login';
     url.searchParams.set('redirectTo', request.nextUrl.pathname);
@@ -41,7 +43,7 @@ export async function middleware(request: NextRequest) {
   // Redirect authenticated users away from auth pages
   const isAuthPage =
     request.nextUrl.pathname === '/login' || request.nextUrl.pathname === '/signup';
-  if (isAuthPage && user) {
+  if (isAuthPage && isAuthenticated) {
     const url = request.nextUrl.clone();
     url.pathname = '/dashboard';
     return NextResponse.redirect(url);

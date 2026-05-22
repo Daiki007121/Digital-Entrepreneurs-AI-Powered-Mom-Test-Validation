@@ -2,6 +2,8 @@
 .next/
 out/
 node_modules/
+**/node_modules/
+**/dist/
 
 # Next.js app source (not needed in relay server image)
 app/
